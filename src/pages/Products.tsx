@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,6 +19,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { 
   Search, 
   Plus, 
@@ -26,78 +43,20 @@ import {
   Package,
   AlertTriangle,
   Calendar,
-  Filter
+  Filter,
+  Loader2
 } from "lucide-react";
 import { ProductCategory, ProductStatus } from '@/types';
-
-// Mock data
-const products = [
-  {
-    id: '1',
-    name: 'Paracetamol 500mg',
-    category: ProductCategory.MEDICATIONS,
-    batch: 'L2024001',
-    expirationDate: new Date('2024-12-15'),
-    currentQuantity: 450,
-    minimumQuantity: 100,
-    status: ProductStatus.ACTIVE,
-    location: 'Prateleira A1',
-    supplier: 'Farmácia Central'
-  },
-  {
-    id: '2',
-    name: 'Seringas Descartáveis 10ml',
-    category: ProductCategory.MEDICAL_SUPPLIES,
-    batch: 'S2024015',
-    expirationDate: new Date('2025-06-20'),
-    currentQuantity: 25,
-    minimumQuantity: 50,
-    status: ProductStatus.LOW_STOCK,
-    location: 'Armário B2',
-    supplier: 'Medicus Ltda'
-  },
-  {
-    id: '3',
-    name: 'Álcool 70% - 1L',
-    category: ProductCategory.MEDICAL_SUPPLIES,
-    batch: 'A2024008',
-    expirationDate: new Date('2024-08-10'),
-    currentQuantity: 8,
-    minimumQuantity: 20,
-    status: ProductStatus.EXPIRED,
-    location: 'Prateleira C3',
-    supplier: 'Química Medicinal'
-  },
-  {
-    id: '4',
-    name: 'Inseticida para Dengue',
-    category: ProductCategory.ENDEMIC_CONTROL,
-    batch: 'D2024003',
-    expirationDate: new Date('2025-03-15'),
-    currentQuantity: 120,
-    minimumQuantity: 30,
-    status: ProductStatus.ACTIVE,
-    location: 'Depósito D1',
-    supplier: 'Control Tech'
-  },
-  {
-    id: '5',
-    name: 'Luvas de Procedimento (M)',
-    category: ProductCategory.PERSONAL_PROTECTIVE_EQUIPMENT,
-    batch: 'P2024012',
-    expirationDate: new Date('2026-01-30'),
-    currentQuantity: 0,
-    minimumQuantity: 100,
-    status: ProductStatus.OUT_OF_STOCK,
-    location: 'Armário E1',
-    supplier: 'SafeGuard Med'
-  }
-];
+import { useProducts } from '@/hooks/useProducts';
+import { ProductForm } from '@/components/ProductForm';
 
 export default function Products() {
+  const { products, isLoading, refetch, deleteProduct } = useProducts();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
+  const [showProductForm, setShowProductForm] = useState(false);
+  const [productToDelete, setProductToDelete] = useState<string | null>(null);
 
   const filteredProducts = products.filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -148,6 +107,27 @@ export default function Products() {
     return null;
   };
 
+  const handleProductFormSuccess = () => {
+    setShowProductForm(false);
+    refetch();
+  };
+
+  const handleDeleteProduct = async () => {
+    if (productToDelete) {
+      await deleteProduct(productToDelete);
+      setProductToDelete(null);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin" />
+        <span className="ml-2">Carregando produtos...</span>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -158,7 +138,11 @@ export default function Products() {
             Gerencie o catálogo de produtos do almoxarifado
           </p>
         </div>
-        <Button variant="medical" className="gap-2">
+        <Button 
+          variant="medical" 
+          className="gap-2"
+          onClick={() => setShowProductForm(true)}
+        >
           <Plus className="h-4 w-4" />
           Novo Produto
         </Button>
@@ -246,7 +230,7 @@ export default function Products() {
                         <div>
                           <div className="font-medium">{product.name}</div>
                           <div className="text-sm text-muted-foreground">
-                            {product.location}
+                            {product.location || 'Localização não definida'}
                           </div>
                         </div>
                       </TableCell>
@@ -300,7 +284,12 @@ export default function Products() {
                           <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                             <Edit3 className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-error hover:text-error">
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-8 w-8 p-0 text-error hover:text-error"
+                            onClick={() => setProductToDelete(product.id)}
+                          >
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
@@ -325,6 +314,42 @@ export default function Products() {
           )}
         </CardContent>
       </Card>
+
+      {/* Product Form Sheet */}
+      <Sheet open={showProductForm} onOpenChange={setShowProductForm}>
+        <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Novo Produto</SheetTitle>
+          </SheetHeader>
+          <div className="mt-6">
+            <ProductForm
+              onSuccess={handleProductFormSuccess}
+              onCancel={() => setShowProductForm(false)}
+            />
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!productToDelete} onOpenChange={() => setProductToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir este produto? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteProduct}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -14,7 +14,136 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      alerts: {
+        Row: {
+          created_at: string
+          id: string
+          is_read: boolean
+          message: string
+          product_id: string
+          severity: string
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message: string
+          product_id: string
+          severity: string
+          type: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message?: string
+          product_id?: string
+          severity?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alerts_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      products: {
+        Row: {
+          batch: string
+          category: string
+          created_at: string
+          current_quantity: number
+          description: string | null
+          expiration_date: string
+          id: string
+          location: string | null
+          minimum_quantity: number
+          name: string
+          status: string
+          supplier: string | null
+          updated_at: string
+        }
+        Insert: {
+          batch: string
+          category: string
+          created_at?: string
+          current_quantity?: number
+          description?: string | null
+          expiration_date: string
+          id?: string
+          location?: string | null
+          minimum_quantity?: number
+          name: string
+          status?: string
+          supplier?: string | null
+          updated_at?: string
+        }
+        Update: {
+          batch?: string
+          category?: string
+          created_at?: string
+          current_quantity?: number
+          description?: string | null
+          expiration_date?: string
+          id?: string
+          location?: string | null
+          minimum_quantity?: number
+          name?: string
+          status?: string
+          supplier?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      stock_movements: {
+        Row: {
+          id: string
+          invoice_number: string | null
+          notes: string | null
+          product_id: string
+          quantity: number
+          reason: string
+          responsible_user: string
+          timestamp: string
+          type: string
+        }
+        Insert: {
+          id?: string
+          invoice_number?: string | null
+          notes?: string | null
+          product_id: string
+          quantity: number
+          reason: string
+          responsible_user: string
+          timestamp?: string
+          type: string
+        }
+        Update: {
+          id?: string
+          invoice_number?: string | null
+          notes?: string | null
+          product_id?: string
+          quantity?: number
+          reason?: string
+          responsible_user?: string
+          timestamp?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_movements_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
