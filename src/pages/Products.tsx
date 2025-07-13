@@ -84,8 +84,10 @@ export default function Products() {
 
   const getCategoryLabel = (category: ProductCategory) => {
     const labels = {
-      [ProductCategory.MEDICATIONS]: 'Medicamentos',
-      [ProductCategory.MEDICAL_SUPPLIES]: 'Materiais Médicos',
+      [ProductCategory.GRAPHIC_MATERIALS]: 'Materiais Gráficos',
+      [ProductCategory.CLEANING_MATERIALS]: 'Materiais de Limpeza',
+      [ProductCategory.UNIFORMS]: 'Fardamentos',
+      [ProductCategory.OFFICE_SUPPLIES]: 'Material de Escritório',
       [ProductCategory.ENDEMIC_CONTROL]: 'Controle Endemia',
       [ProductCategory.LABORATORY]: 'Laboratório',
       [ProductCategory.PERSONAL_PROTECTIVE_EQUIPMENT]: 'EPIs',
@@ -175,8 +177,10 @@ export default function Products() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todas as categorias</SelectItem>
-                <SelectItem value={ProductCategory.MEDICATIONS}>Medicamentos</SelectItem>
-                <SelectItem value={ProductCategory.MEDICAL_SUPPLIES}>Materiais Médicos</SelectItem>
+                <SelectItem value={ProductCategory.GRAPHIC_MATERIALS}>Materiais Gráficos</SelectItem>
+                <SelectItem value={ProductCategory.CLEANING_MATERIALS}>Materiais de Limpeza</SelectItem>
+                <SelectItem value={ProductCategory.UNIFORMS}>Fardamentos</SelectItem>
+                <SelectItem value={ProductCategory.OFFICE_SUPPLIES}>Material de Escritório</SelectItem>
                 <SelectItem value={ProductCategory.ENDEMIC_CONTROL}>Controle Endemia</SelectItem>
                 <SelectItem value={ProductCategory.LABORATORY}>Laboratório</SelectItem>
                 <SelectItem value={ProductCategory.PERSONAL_PROTECTIVE_EQUIPMENT}>EPIs</SelectItem>

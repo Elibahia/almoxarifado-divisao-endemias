@@ -48,8 +48,10 @@ export interface User {
 
 // Enums
 export enum ProductCategory {
-  MEDICATIONS = 'medications',
-  MEDICAL_SUPPLIES = 'medical_supplies',
+  GRAPHIC_MATERIALS = 'graphic_materials',
+  CLEANING_MATERIALS = 'cleaning_materials', 
+  UNIFORMS = 'uniforms',
+  OFFICE_SUPPLIES = 'office_supplies',
   ENDEMIC_CONTROL = 'endemic_control',
   LABORATORY = 'laboratory',
   PERSONAL_PROTECTIVE_EQUIPMENT = 'ppe',

@@ -53,7 +53,7 @@ export function ProductForm({ onSuccess, onCancel }: ProductFormProps) {
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
-      category: ProductCategory.MEDICATIONS,
+      category: ProductCategory.GRAPHIC_MATERIALS,
       description: "",
       batch: "",
       expirationDate: "",
@@ -112,8 +112,10 @@ export function ProductForm({ onSuccess, onCancel }: ProductFormProps) {
 
   const getCategoryLabel = (category: ProductCategory) => {
     const labels = {
-      [ProductCategory.MEDICATIONS]: 'Medicamentos',
-      [ProductCategory.MEDICAL_SUPPLIES]: 'Materiais Médicos',
+      [ProductCategory.GRAPHIC_MATERIALS]: 'Materiais Gráficos',
+      [ProductCategory.CLEANING_MATERIALS]: 'Materiais de Limpeza',
+      [ProductCategory.UNIFORMS]: 'Fardamentos',
+      [ProductCategory.OFFICE_SUPPLIES]: 'Material de Escritório',
       [ProductCategory.ENDEMIC_CONTROL]: 'Controle Endemia',
       [ProductCategory.LABORATORY]: 'Laboratório',
       [ProductCategory.PERSONAL_PROTECTIVE_EQUIPMENT]: 'EPIs',
