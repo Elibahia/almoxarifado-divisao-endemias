@@ -225,7 +225,14 @@ export default function Reports() {
             <div>
               <Label>Período</Label>
               <DatePickerWithRange 
-                onDateChange={(dateRange) => setMovementFilters(prev => ({ ...prev, dateRange }))}
+                onDateChange={(dateRange) => {
+                  if (dateRange?.from && dateRange?.to) {
+                    setMovementFilters(prev => ({ 
+                      ...prev, 
+                      dateRange: { from: dateRange.from, to: dateRange.to }
+                    }));
+                  }
+                }}
               />
             </div>
             <div>
@@ -357,70 +364,6 @@ export default function Reports() {
           </CardContent>
         </Card>
       </div>
-
-      {/* Quick Reports */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileBarChart className="h-5 w-5" />
-            Relatórios Rápidos
-          </CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Acesso rápido aos relatórios mais utilizados
-          </p>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Button 
-              variant="outline" 
-              className="h-20 flex flex-col gap-2"
-              onClick={() => {
-                setStockFilters({});
-                handleGenerateStockReport();
-              }}
-            >
-              <TableIcon className="h-6 w-6" />
-              <span className="text-sm">Estoque Completo</span>
-            </Button>
-            <Button 
-              variant="outline" 
-              className="h-20 flex flex-col gap-2"
-              onClick={() => {
-                setExpirationFilters({ expirationDays: 30 });
-                handleGenerateExpirationReport();
-              }}
-            >
-              <Calendar className="h-6 w-6" />
-              <span className="text-sm">Vencimentos</span>
-            </Button>
-            <Button 
-              variant="outline" 
-              className="h-20 flex flex-col gap-2"
-              onClick={() => {
-                const now = new Date();
-                const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-                const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-                setMovementFilters({ dateRange: { from: firstDay, to: lastDay } });
-                handleGenerateMovementReport();
-              }}
-            >
-              <BarChart3 className="h-6 w-6" />
-              <span className="text-sm">Movimentações Mensais</span>
-            </Button>
-            <Button 
-              variant="outline" 
-              className="h-20 flex flex-col gap-2"
-              onClick={() => {
-                setStockFilters({ status: 'low_stock' });
-                handleGenerateStockReport();
-              }}
-            >
-              <Filter className="h-6 w-6" />
-              <span className="text-sm">Estoque Baixo</span>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Report Results */}
       {currentReport && (
