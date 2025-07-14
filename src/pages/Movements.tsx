@@ -1,7 +1,9 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
   TableBody,
@@ -11,7 +13,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { 
-  ArrowUpDown, 
   Plus, 
   TrendingUp, 
   TrendingDown,
@@ -19,73 +20,42 @@ import {
   ArrowRightLeft,
   Calendar,
   User,
-  FileText
+  FileText,
+  Package
 } from "lucide-react";
 import { MovementType } from '@/types';
-
-// Mock data
-const movements = [
-  {
-    id: '1',
-    productName: 'Paracetamol 500mg',
-    type: MovementType.EXIT,
-    quantity: 50,
-    reason: 'Dispensação para UBS Centro',
-    responsibleUser: 'Ana Silva',
-    timestamp: new Date('2024-07-13T10:30:00'),
-    notes: 'Solicitação via sistema interno',
-    batch: 'L2024001'
-  },
-  {
-    id: '2',
-    productName: 'Seringas Descartáveis 10ml',
-    type: MovementType.ENTRY,
-    quantity: 200,
-    reason: 'Compra - NF 12345',
-    responsibleUser: 'Carlos Santos',
-    timestamp: new Date('2024-07-13T09:15:00'),
-    notes: 'Entrega do fornecedor Medicus Ltda',
-    invoiceNumber: 'NF-12345'
-  },
-  {
-    id: '3',
-    productName: 'Álcool 70% - 1L',
-    type: MovementType.EXIT,
-    quantity: 25,
-    reason: 'Distribuição para agentes de saúde',
-    responsibleUser: 'Maria Oliveira',
-    timestamp: new Date('2024-07-13T08:45:00'),
-    notes: 'Campanha de vacinação',
-    batch: 'A2024008'
-  },
-  {
-    id: '4',
-    productName: 'Luvas de Procedimento (M)',
-    type: MovementType.ADJUSTMENT,
-    quantity: -10,
-    reason: 'Ajuste por avaria',
-    responsibleUser: 'João Costa',
-    timestamp: new Date('2024-07-12T16:20:00'),
-    notes: 'Produtos danificados durante transporte'
-  },
-  {
-    id: '5',
-    productName: 'Inseticida para Dengue',
-    type: MovementType.TRANSFER,
-    quantity: 30,
-    reason: 'Transferência para UBS Norte',
-    responsibleUser: 'Paula Ferreira',
-    timestamp: new Date('2024-07-12T14:00:00'),
-    notes: 'Demanda urgente para controle de foco'
-  }
-];
+import { useMovements } from '@/hooks/useMovements';
+import MovementForm from '@/components/MovementForm';
 
 export default function Movements() {
-  const [selectedType, setSelectedType] = useState<string>('all');
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const { movements, isLoading, refetch } = useMovements();
 
-  const filteredMovements = movements.filter(movement => {
-    return selectedType === 'all' || movement.type === selectedType;
+  // Filtrar movimentações por tipo
+  const entries = movements.filter(m => m.type === MovementType.ENTRY);
+  const exits = movements.filter(m => m.type === MovementType.EXIT);
+  const adjustments = movements.filter(m => m.type === MovementType.ADJUSTMENT);
+  const transfers = movements.filter(m => m.type === MovementType.TRANSFER);
+
+  // Calcular estatísticas do dia atual
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  const todayMovements = movements.filter(m => {
+    const movementDate = new Date(m.timestamp);
+    movementDate.setHours(0, 0, 0, 0);
+    return movementDate.getTime() === today.getTime();
   });
+
+  const todayEntries = todayMovements.filter(m => m.type === MovementType.ENTRY);
+  const todayExits = todayMovements.filter(m => m.type === MovementType.EXIT);
+  const todayAdjustments = todayMovements.filter(m => m.type === MovementType.ADJUSTMENT);
+  const todayTransfers = todayMovements.filter(m => m.type === MovementType.TRANSFER);
+
+  const totalEntriesQty = todayEntries.reduce((sum, m) => sum + m.quantity, 0);
+  const totalExitsQty = todayExits.reduce((sum, m) => sum + m.quantity, 0);
+  const totalAdjustmentsQty = todayAdjustments.reduce((sum, m) => sum + m.quantity, 0);
+  const totalTransfersQty = todayTransfers.reduce((sum, m) => sum + m.quantity, 0);
 
   const getMovementIcon = (type: MovementType) => {
     switch (type) {
@@ -98,7 +68,7 @@ export default function Movements() {
       case MovementType.TRANSFER:
         return <ArrowRightLeft className="h-4 w-4 text-primary" />;
       default:
-        return <ArrowUpDown className="h-4 w-4" />;
+        return <Package className="h-4 w-4" />;
     }
   };
 
@@ -117,21 +87,113 @@ export default function Movements() {
     }
   };
 
-  const getQuantityDisplay = (type: MovementType, quantity: number) => {
-    const sign = type === MovementType.ENTRY ? '+' : 
-                type === MovementType.EXIT ? '-' : 
-                quantity > 0 ? '+' : '';
-    
-    const color = type === MovementType.ENTRY ? 'text-success' :
-                 type === MovementType.EXIT ? 'text-error' :
-                 quantity > 0 ? 'text-success' : 'text-error';
-    
+  const renderMovementTable = (movementsList: typeof movements, emptyMessage: string) => (
+    <div className="rounded-md border overflow-hidden">
+      <Table>
+        <TableHeader>
+          <TableRow className="bg-muted/50">
+            <TableHead className="font-semibold">Data/Hora</TableHead>
+            <TableHead className="font-semibold">Produto</TableHead>
+            <TableHead className="font-semibold">Quantidade</TableHead>
+            <TableHead className="font-semibold">Motivo</TableHead>
+            <TableHead className="font-semibold">Responsável</TableHead>
+            <TableHead className="font-semibold">Detalhes</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {movementsList.map((movement) => (
+            <TableRow key={movement.id} className="hover:bg-muted/30 transition-colors">
+              <TableCell>
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                  <div>
+                    <div className="font-medium text-sm">
+                      {movement.timestamp.toLocaleDateString('pt-BR')}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {movement.timestamp.toLocaleTimeString('pt-BR', { 
+                        hour: '2-digit', 
+                        minute: '2-digit' 
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </TableCell>
+              <TableCell>
+                <div>
+                  <div className="font-medium">{movement.productName}</div>
+                  {movement.batch && (
+                    <div className="text-xs text-muted-foreground font-mono">
+                      Lote: {movement.batch}
+                    </div>
+                  )}
+                </div>
+              </TableCell>
+              <TableCell>
+                <div className="text-center">
+                  <span className="font-medium text-foreground">
+                    {movement.quantity}
+                  </span>
+                  <div className="text-xs text-muted-foreground">unidades</div>
+                </div>
+              </TableCell>
+              <TableCell>
+                <div className="max-w-xs">
+                  <div className="font-medium text-sm">{movement.reason}</div>
+                  {movement.invoiceNumber && (
+                    <div className="text-xs text-muted-foreground">
+                      {movement.invoiceNumber}
+                    </div>
+                  )}
+                </div>
+              </TableCell>
+              <TableCell>
+                <div className="flex items-center gap-2">
+                  <User className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm">{movement.responsibleUser}</span>
+                </div>
+              </TableCell>
+              <TableCell>
+                {movement.notes && (
+                  <div className="flex items-center gap-1">
+                    <FileText className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-xs text-muted-foreground max-w-xs truncate">
+                      {movement.notes}
+                    </span>
+                  </div>
+                )}
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+
+      {movementsList.length === 0 && (
+        <div className="text-center py-8">
+          <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-foreground mb-2">
+            {emptyMessage}
+          </h3>
+          <p className="text-muted-foreground">
+            Registre uma nova movimentação para começar.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+
+  if (isLoading) {
     return (
-      <span className={`font-medium ${color}`}>
-        {sign}{Math.abs(quantity)}
-      </span>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Movimentações</h1>
+            <p className="text-muted-foreground">Carregando...</p>
+          </div>
+        </div>
+      </div>
     );
-  };
+  }
 
   return (
     <div className="space-y-6">
@@ -143,7 +205,11 @@ export default function Movements() {
             Histórico de entradas, saídas e ajustes de estoque
           </p>
         </div>
-        <Button variant="medical" className="gap-2">
+        <Button 
+          variant="medical" 
+          className="gap-2"
+          onClick={() => setIsFormOpen(true)}
+        >
           <Plus className="h-4 w-4" />
           Nova Movimentação
         </Button>
@@ -159,8 +225,8 @@ export default function Movements() {
             <TrendingUp className="h-4 w-4 text-success" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-success">+200</div>
-            <p className="text-xs text-muted-foreground mt-1">1 movimentação</p>
+            <div className="text-2xl font-bold text-success">+{totalEntriesQty}</div>
+            <p className="text-xs text-muted-foreground mt-1">{todayEntries.length} movimentação(ões)</p>
           </CardContent>
         </Card>
 
@@ -172,8 +238,8 @@ export default function Movements() {
             <TrendingDown className="h-4 w-4 text-error" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-error">-75</div>
-            <p className="text-xs text-muted-foreground mt-1">2 movimentações</p>
+            <div className="text-2xl font-bold text-error">-{totalExitsQty}</div>
+            <p className="text-xs text-muted-foreground mt-1">{todayExits.length} movimentação(ões)</p>
           </CardContent>
         </Card>
 
@@ -185,8 +251,8 @@ export default function Movements() {
             <RotateCcw className="h-4 w-4 text-warning" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-warning">-10</div>
-            <p className="text-xs text-muted-foreground mt-1">1 ajuste</p>
+            <div className="text-2xl font-bold text-warning">{totalAdjustmentsQty}</div>
+            <p className="text-xs text-muted-foreground mt-1">{todayAdjustments.length} ajuste(s)</p>
           </CardContent>
         </Card>
 
@@ -198,120 +264,67 @@ export default function Movements() {
             <ArrowRightLeft className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-primary">30</div>
-            <p className="text-xs text-muted-foreground mt-1">1 transferência</p>
+            <div className="text-2xl font-bold text-primary">{totalTransfersQty}</div>
+            <p className="text-xs text-muted-foreground mt-1">{todayTransfers.length} transferência(s)</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Movements Table */}
+      {/* Movements Tables */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <ArrowUpDown className="h-5 w-5" />
-            Histórico de Movimentações ({filteredMovements.length})
+            <Package className="h-5 w-5" />
+            Histórico de Movimentações ({movements.length})
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-muted/50">
-                  <TableHead className="font-semibold">Data/Hora</TableHead>
-                  <TableHead className="font-semibold">Produto</TableHead>
-                  <TableHead className="font-semibold">Tipo</TableHead>
-                  <TableHead className="font-semibold">Quantidade</TableHead>
-                  <TableHead className="font-semibold">Motivo</TableHead>
-                  <TableHead className="font-semibold">Responsável</TableHead>
-                  <TableHead className="font-semibold">Detalhes</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredMovements.map((movement) => (
-                  <TableRow key={movement.id} className="hover:bg-muted/30 transition-colors">
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-muted-foreground" />
-                        <div>
-                          <div className="font-medium text-sm">
-                            {movement.timestamp.toLocaleDateString('pt-BR')}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            {movement.timestamp.toLocaleTimeString('pt-BR', { 
-                              hour: '2-digit', 
-                              minute: '2-digit' 
-                            })}
-                          </div>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div>
-                        <div className="font-medium">{movement.productName}</div>
-                        {movement.batch && (
-                          <div className="text-xs text-muted-foreground font-mono">
-                            Lote: {movement.batch}
-                          </div>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        {getMovementIcon(movement.type)}
-                        {getMovementBadge(movement.type)}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-center">
-                        {getQuantityDisplay(movement.type, movement.quantity)}
-                        <div className="text-xs text-muted-foreground">unidades</div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="max-w-xs">
-                        <div className="font-medium text-sm">{movement.reason}</div>
-                        {movement.invoiceNumber && (
-                          <div className="text-xs text-muted-foreground">
-                            {movement.invoiceNumber}
-                          </div>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <User className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm">{movement.responsibleUser}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {movement.notes && (
-                        <div className="flex items-center gap-1">
-                          <FileText className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-xs text-muted-foreground max-w-xs truncate">
-                            {movement.notes}
-                          </span>
-                        </div>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+          <Tabs defaultValue="all" className="w-full">
+            <TabsList className="grid w-full grid-cols-5">
+              <TabsTrigger value="all">Todas</TabsTrigger>
+              <TabsTrigger value="entries" className="text-success">
+                Entradas ({entries.length})
+              </TabsTrigger>
+              <TabsTrigger value="exits" className="text-error">
+                Saídas ({exits.length})
+              </TabsTrigger>
+              <TabsTrigger value="adjustments" className="text-warning">
+                Ajustes ({adjustments.length})
+              </TabsTrigger>
+              <TabsTrigger value="transfers" className="text-primary">
+                Transferências ({transfers.length})
+              </TabsTrigger>
+            </TabsList>
 
-          {filteredMovements.length === 0 && (
-            <div className="text-center py-8">
-              <ArrowUpDown className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-foreground mb-2">
-                Nenhuma movimentação encontrada
-              </h3>
-              <p className="text-muted-foreground">
-                Registre uma nova movimentação para começar.
-              </p>
-            </div>
-          )}
+            <TabsContent value="all" className="mt-6">
+              {renderMovementTable(movements, "Nenhuma movimentação encontrada")}
+            </TabsContent>
+
+            <TabsContent value="entries" className="mt-6">
+              {renderMovementTable(entries, "Nenhuma entrada registrada")}
+            </TabsContent>
+
+            <TabsContent value="exits" className="mt-6">
+              {renderMovementTable(exits, "Nenhuma saída registrada")}
+            </TabsContent>
+
+            <TabsContent value="adjustments" className="mt-6">
+              {renderMovementTable(adjustments, "Nenhum ajuste registrado")}
+            </TabsContent>
+
+            <TabsContent value="transfers" className="mt-6">
+              {renderMovementTable(transfers, "Nenhuma transferência registrada")}
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
+
+      {/* Movement Form Modal */}
+      <MovementForm
+        isOpen={isFormOpen}
+        onClose={() => setIsFormOpen(false)}
+        onSuccess={refetch}
+      />
     </div>
   );
 }
