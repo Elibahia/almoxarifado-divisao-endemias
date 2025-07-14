@@ -1,8 +1,12 @@
 import { ReactNode } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Bell, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import { useAlerts } from "@/hooks/useAlerts";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,8 +22,29 @@ interface LayoutProps {
 }
 
 export function Layout({ children }: LayoutProps) {
-  // Mock alert count - in real app this would come from state/API
-  const alertCount = 3;
+  const navigate = useNavigate();
+  const { signOut, userProfile } = useAuth();
+  const { toast } = useToast();
+  const { alerts = [] } = useAlerts();
+  
+  const alertCount = alerts.filter(alert => !alert.is_read).length;
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      toast({
+        title: "Logout realizado com sucesso",
+        description: "Até logo!",
+      });
+      navigate('/login');
+    } catch (error) {
+      toast({
+        title: "Erro ao sair",
+        description: "Tente novamente.",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <SidebarProvider>
@@ -43,7 +68,12 @@ export function Layout({ children }: LayoutProps) {
 
             <div className="flex items-center gap-4">
               {/* Notifications */}
-              <Button variant="ghost" size="icon" className="relative">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="relative" 
+                onClick={() => navigate('/alerts')}
+              >
                 <Bell className="h-5 w-5" />
                 {alertCount > 0 && (
                   <Badge 
@@ -63,12 +93,11 @@ export function Layout({ children }: LayoutProps) {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuLabel>Minha Conta</DropdownMenuLabel>
+                  <DropdownMenuLabel>
+                    {userProfile?.name || userProfile?.email}
+                  </DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem>Perfil</DropdownMenuItem>
-                  <DropdownMenuItem>Configurações</DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem className="text-destructive">
+                  <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
                     Sair
                   </DropdownMenuItem>
                 </DropdownMenuContent>
