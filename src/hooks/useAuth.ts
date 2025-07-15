@@ -20,92 +20,72 @@ export function useAuth() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Set up auth state listener
+    let initialized = false;
+
+    // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         console.log('Auth state changed:', event, session?.user?.email);
         setSession(session);
         setUser(session?.user ?? null);
         
-        if (session?.user) {
-          // Fetch user profile
-          try {
-            const { data: profile, error } = await supabase
-              .from('user_profiles')
-              .select('*')
-              .eq('id', session.user.id)
-              .single();
-            
-            if (error) {
-              console.error('Error fetching profile:', error);
-              // Se não encontrar o perfil, tenta criar um
-              if (error.code === 'PGRST116') {
-                console.log('Profile not found, attempting to create...');
-                await createMissingProfile(session.user);
-              }
-            } else {
-              console.log('Profile loaded:', profile);
-              setUserProfile(profile);
-            }
-          } catch (err) {
-            console.error('Profile fetch error:', err);
-          }
-        } else {
+        if (session?.user && !initialized) {
+          // Only fetch profile data after auth state is established
+          setTimeout(() => {
+            fetchUserProfile(session.user);
+          }, 0);
+        } else if (!session?.user) {
           setUserProfile(null);
         }
         
         setLoading(false);
+        initialized = true;
       }
     );
 
-    // Check for existing session
-    const initializeAuth = async () => {
-      try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        if (error) {
-          console.error('Error getting session:', error);
-          setLoading(false);
-          return;
-        }
-
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!initialized) {
         console.log('Initial session:', session?.user?.email);
         setSession(session);
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          try {
-            const { data: profile, error: profileError } = await supabase
-              .from('user_profiles')
-              .select('*')
-              .eq('id', session.user.id)
-              .single();
-            
-            if (profileError) {
-              console.error('Error fetching initial profile:', profileError);
-              if (profileError.code === 'PGRST116') {
-                console.log('Initial profile not found, attempting to create...');
-                await createMissingProfile(session.user);
-              }
-            } else {
-              console.log('Initial profile loaded:', profile);
-              setUserProfile(profile);
-            }
-          } catch (err) {
-            console.error('Initial profile fetch error:', err);
-          }
+          setTimeout(() => {
+            fetchUserProfile(session.user);
+          }, 0);
         }
         
         setLoading(false);
-      } catch (error) {
-        console.error('Auth initialization error:', error);
-        setLoading(false);
+        initialized = true;
       }
-    };
-
-    initializeAuth();
+    });
 
     return () => subscription.unsubscribe();
   }, []);
+
+  const fetchUserProfile = async (user: User) => {
+    try {
+      const { data: profile, error } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+      
+      if (error) {
+        console.error('Error fetching profile:', error);
+        if (error.code === 'PGRST116') {
+          console.log('Profile not found, attempting to create...');
+          await createMissingProfile(user);
+        }
+      } else {
+        console.log('Profile loaded:', profile);
+        setUserProfile(profile);
+      }
+    } catch (err) {
+      console.error('Profile fetch error:', err);
+    }
+  };
 
   const createMissingProfile = async (user: User) => {
     try {

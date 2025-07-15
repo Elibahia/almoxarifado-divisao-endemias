@@ -192,7 +192,7 @@ export default function Login() {
         {/* Footer */}
         <div className="text-center mt-8 text-white/60 text-sm">
           <p>Sistema desenvolvido para unidades de saúde</p>
-          <p className="mt-1">© 2024 - Secretaria de Saúde</p>
+          <p className="mt-1">Copyright © 2025. Desenvolvido por Elissandro Oliveira. Todos os direitos reservados.</p>
         </div>
       </div>
     </div>
