@@ -21,10 +21,18 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center">Carregando...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p>Carregando...</p>
+        </div>
+      </div>
+    );
   }
   
   if (!user) {
+    console.log('No user found, redirecting to login');
     return <Navigate to="/login" replace />;
   }
   
@@ -35,10 +43,18 @@ function AuthRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center">Carregando...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p>Carregando...</p>
+        </div>
+      </div>
+    );
   }
   
   if (user) {
+    console.log('User already authenticated, redirecting to dashboard');
     return <Navigate to="/" replace />;
   }
   
@@ -97,7 +113,6 @@ const App = () => (
               </Layout>
             </ProtectedRoute>
           } />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

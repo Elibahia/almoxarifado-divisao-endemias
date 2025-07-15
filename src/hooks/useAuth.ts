@@ -23,18 +23,28 @@ export function useAuth() {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('Auth state changed:', event, session?.user?.email);
         setSession(session);
         setUser(session?.user ?? null);
         
         if (session?.user) {
           // Fetch user profile
-          const { data: profile } = await supabase
-            .from('user_profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
-          
-          setUserProfile(profile);
+          try {
+            const { data: profile, error } = await supabase
+              .from('user_profiles')
+              .select('*')
+              .eq('id', session.user.id)
+              .single();
+            
+            if (error) {
+              console.error('Error fetching profile:', error);
+            } else {
+              console.log('Profile loaded:', profile);
+              setUserProfile(profile);
+            }
+          } catch (err) {
+            console.error('Profile fetch error:', err);
+          }
         } else {
           setUserProfile(null);
         }
@@ -44,34 +54,69 @@ export function useAuth() {
     );
 
     // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        supabase
-          .from('user_profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single()
-          .then(({ data: profile }) => {
-            setUserProfile(profile);
-            setLoading(false);
-          });
-      } else {
+    const initializeAuth = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) {
+          console.error('Error getting session:', error);
+          setLoading(false);
+          return;
+        }
+
+        console.log('Initial session:', session?.user?.email);
+        setSession(session);
+        setUser(session?.user ?? null);
+        
+        if (session?.user) {
+          try {
+            const { data: profile, error: profileError } = await supabase
+              .from('user_profiles')
+              .select('*')
+              .eq('id', session.user.id)
+              .single();
+            
+            if (profileError) {
+              console.error('Error fetching initial profile:', profileError);
+            } else {
+              console.log('Initial profile loaded:', profile);
+              setUserProfile(profile);
+            }
+          } catch (err) {
+            console.error('Initial profile fetch error:', err);
+          }
+        }
+        
+        setLoading(false);
+      } catch (error) {
+        console.error('Auth initialization error:', error);
         setLoading(false);
       }
-    });
+    };
+
+    initializeAuth();
 
     return () => subscription.unsubscribe();
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    return { data, error };
+    try {
+      console.log('Attempting to sign in with:', email);
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      
+      if (error) {
+        console.error('Sign in error:', error);
+        return { data: null, error };
+      }
+      
+      console.log('Sign in successful:', data.user?.email);
+      return { data, error: null };
+    } catch (err) {
+      console.error('Sign in exception:', err);
+      return { data: null, error: err as any };
+    }
   };
 
   const signUp = async (email: string, password: string, name?: string) => {
@@ -89,6 +134,11 @@ export function useAuth() {
 
   const signOut = async () => {
     const { error } = await supabase.auth.signOut();
+    if (!error) {
+      setUser(null);
+      setSession(null);
+      setUserProfile(null);
+    }
     return { error };
   };
 

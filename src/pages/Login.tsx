@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,25 +28,40 @@ export default function Login() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!email || !password) {
+      toast({
+        title: "Erro de validação",
+        description: "Por favor, preencha email e senha.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
+    console.log('Submitting login form with email:', email);
 
     try {
       const { error } = await signIn(email, password);
       
       if (error) {
+        console.error('Login error:', error);
         toast({
           title: "Erro ao fazer login",
-          description: error.message,
+          description: error.message || "Verifique suas credenciais e tente novamente.",
           variant: "destructive",
         });
       } else {
+        console.log('Login successful, redirecting...');
         toast({
           title: "Login realizado com sucesso!",
           description: "Redirecionando...",
         });
-        navigate('/');
+        // Force page reload to ensure clean state
+        window.location.href = '/';
       }
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Login exception:', error);
       toast({
         title: "Erro inesperado",
         description: "Tente novamente mais tarde.",
@@ -97,6 +113,7 @@ export default function Login() {
                     onChange={(e) => setEmail(e.target.value)}
                     className="pl-10"
                     required
+                    disabled={loading}
                   />
                 </div>
               </div>
@@ -113,6 +130,7 @@ export default function Login() {
                     onChange={(e) => setPassword(e.target.value)}
                     className="pl-10 pr-10"
                     required
+                    disabled={loading}
                   />
                   <Button
                     type="button"
@@ -120,6 +138,7 @@ export default function Login() {
                     size="sm"
                     className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                     onClick={() => setShowPassword(!showPassword)}
+                    disabled={loading}
                   >
                     {showPassword ? (
                       <EyeOff className="h-4 w-4 text-muted-foreground" />
@@ -143,14 +162,14 @@ export default function Login() {
 
             <div className="mt-6 space-y-4">
               <div className="text-center">
-                <Button variant="link" className="text-sm">
+                <Button variant="link" className="text-sm" disabled={loading}>
                   Esqueci minha senha
                 </Button>
               </div>
 
               <div className="text-center text-sm text-muted-foreground">
                 Primeiro acesso?{' '}
-                <Button variant="link" className="text-sm p-0 h-auto">
+                <Button variant="link" className="text-sm p-0 h-auto" disabled={loading}>
                   Solicitar credenciais
                 </Button>
               </div>
