@@ -13,14 +13,17 @@ import {
   Mail, 
   Lock,
   Eye,
-  EyeOff
+  EyeOff,
+  AlertCircle
 } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   
   const { signIn } = useAuth();
   const navigate = useNavigate();
@@ -28,13 +31,10 @@ export default function Login() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
     
     if (!email || !password) {
-      toast({
-        title: "Erro de validação",
-        description: "Por favor, preencha email e senha.",
-        variant: "destructive",
-      });
+      setError('Por favor, preencha email e senha.');
       return;
     }
 
@@ -46,9 +46,10 @@ export default function Login() {
       
       if (error) {
         console.error('Login error:', error);
+        setError(error.message);
         toast({
           title: "Erro ao fazer login",
-          description: error.message || "Verifique suas credenciais e tente novamente.",
+          description: error.message,
           variant: "destructive",
         });
       } else {
@@ -57,14 +58,18 @@ export default function Login() {
           title: "Login realizado com sucesso!",
           description: "Redirecionando...",
         });
-        // Force page reload to ensure clean state
-        window.location.href = '/';
+        // Small delay to show success message before redirect
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 1000);
       }
     } catch (error: any) {
       console.error('Login exception:', error);
+      const errorMessage = "Erro inesperado durante o login. Tente novamente.";
+      setError(errorMessage);
       toast({
         title: "Erro inesperado",
-        description: "Tente novamente mais tarde.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -100,6 +105,13 @@ export default function Login() {
             </p>
           </CardHeader>
           <CardContent>
+            {error && (
+              <Alert variant="destructive" className="mb-4">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+            
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
@@ -108,7 +120,7 @@ export default function Login() {
                   <Input
                     id="email"
                     type="email"
-                    placeholder="seu.email@saude.gov.br"
+                    placeholder="resumovetorial@gmail.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="pl-10"

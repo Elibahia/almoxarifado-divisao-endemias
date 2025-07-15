@@ -38,6 +38,11 @@ export function useAuth() {
             
             if (error) {
               console.error('Error fetching profile:', error);
+              // Se não encontrar o perfil, tenta criar um
+              if (error.code === 'PGRST116') {
+                console.log('Profile not found, attempting to create...');
+                await createMissingProfile(session.user);
+              }
             } else {
               console.log('Profile loaded:', profile);
               setUserProfile(profile);
@@ -77,6 +82,10 @@ export function useAuth() {
             
             if (profileError) {
               console.error('Error fetching initial profile:', profileError);
+              if (profileError.code === 'PGRST116') {
+                console.log('Initial profile not found, attempting to create...');
+                await createMissingProfile(session.user);
+              }
             } else {
               console.log('Initial profile loaded:', profile);
               setUserProfile(profile);
@@ -98,6 +107,33 @@ export function useAuth() {
     return () => subscription.unsubscribe();
   }, []);
 
+  const createMissingProfile = async (user: User) => {
+    try {
+      const role = user.email === 'resumovetorial@gmail.com' ? 'admin' : 'gestor_almoxarifado';
+      
+      const { data: profile, error } = await supabase
+        .from('user_profiles')
+        .insert({
+          id: user.id,
+          email: user.email || '',
+          name: user.user_metadata?.name || user.email || 'Usuário',
+          role: role,
+          is_active: true
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error creating missing profile:', error);
+      } else {
+        console.log('Missing profile created:', profile);
+        setUserProfile(profile);
+      }
+    } catch (err) {
+      console.error('Exception creating missing profile:', err);
+    }
+  };
+
   const signIn = async (email: string, password: string) => {
     try {
       console.log('Attempting to sign in with:', email);
@@ -108,14 +144,32 @@ export function useAuth() {
       
       if (error) {
         console.error('Sign in error:', error);
-        return { data: null, error };
+        
+        // Tratamento específico para diferentes tipos de erro
+        let friendlyMessage = error.message;
+        
+        if (error.message.includes('Invalid login credentials')) {
+          friendlyMessage = 'Email ou senha incorretos. Verifique suas credenciais e tente novamente.';
+        } else if (error.message.includes('Email not confirmed')) {
+          friendlyMessage = 'Email não confirmado. Verifique sua caixa de entrada.';
+        } else if (error.message.includes('Too many requests')) {
+          friendlyMessage = 'Muitas tentativas de login. Tente novamente em alguns minutos.';
+        }
+        
+        return { data: null, error: { ...error, message: friendlyMessage } };
       }
       
       console.log('Sign in successful:', data.user?.email);
       return { data, error: null };
     } catch (err) {
       console.error('Sign in exception:', err);
-      return { data: null, error: err as any };
+      return { 
+        data: null, 
+        error: { 
+          message: 'Erro inesperado durante o login. Tente novamente.',
+          original: err 
+        } as any 
+      };
     }
   };
 
@@ -127,6 +181,7 @@ export function useAuth() {
         data: {
           name: name || email,
         },
+        emailRedirectTo: `${window.location.origin}/`
       },
     });
     return { data, error };
