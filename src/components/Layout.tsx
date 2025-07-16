@@ -1,3 +1,4 @@
+
 import { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
@@ -61,7 +62,7 @@ export function Layout({ children }: LayoutProps) {
                   Sistema de Almoxarifado
                 </h1>
                 <p className="text-sm text-muted-foreground">
-                  Gestão de Estoque em Saúde
+                  Gestão de Estoque Divisão de Endemias
                 </p>
               </div>
             </div>
