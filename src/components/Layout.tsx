@@ -1,4 +1,3 @@
-
 import { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
@@ -8,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useAlerts } from "@/hooks/useAlerts";
-import { ThemeToggle } from "@/components/ThemeToggle";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -63,15 +61,12 @@ export function Layout({ children }: LayoutProps) {
                   Sistema de Almoxarifado
                 </h1>
                 <p className="text-sm text-muted-foreground">
-                  Gestão de Estoque Divisão de Endemias
+                  Gestão de Estoque em Saúde
                 </p>
               </div>
             </div>
 
             <div className="flex items-center gap-4">
-              {/* Theme Toggle */}
-              <ThemeToggle />
-
               {/* Notifications */}
               <Button 
                 variant="ghost" 
