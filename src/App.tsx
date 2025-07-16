@@ -13,6 +13,7 @@ import Movements from "./pages/Movements";
 import Reports from "./pages/Reports";
 import Alerts from "./pages/Alerts";
 import Users from "./pages/Users";
+import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -110,6 +111,13 @@ const App = () => (
             <ProtectedRoute>
               <Layout>
                 <Users />
+              </Layout>
+            </ProtectedRoute>
+          } />
+          <Route path="/settings" element={
+            <ProtectedRoute>
+              <Layout>
+                <Settings />
               </Layout>
             </ProtectedRoute>
           } />

@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -191,7 +190,6 @@ export default function Login() {
 
         {/* Footer */}
         <div className="text-center mt-8 text-white/60 text-sm">
-          <p>Sistema desenvolvido para unidades de saúde</p>
           <p className="mt-1">Copyright © 2025. Desenvolvido por Elissandro Oliveira. Todos os direitos reservados.</p>
         </div>
       </div>
