@@ -46,7 +46,7 @@ import {
   Filter,
   Loader2
 } from "lucide-react";
-import { ProductCategory, ProductStatus } from '@/types';
+import { Product, ProductCategory, ProductStatus } from '@/types';
 import { useProducts } from '@/hooks/useProducts';
 import { ProductForm } from '@/components/ProductForm';
 
@@ -56,6 +56,7 @@ export default function Products() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [showProductForm, setShowProductForm] = useState(false);
+  const [productToEdit, setProductToEdit] = useState<Product | null>(null);
   const [productToDelete, setProductToDelete] = useState<string | null>(null);
 
   const filteredProducts = products.filter(product => {
@@ -111,7 +112,18 @@ export default function Products() {
 
   const handleProductFormSuccess = () => {
     setShowProductForm(false);
+    setProductToEdit(null);
     refetch();
+  };
+
+  const handleEditProduct = (product: Product) => {
+    setProductToEdit(product);
+    setShowProductForm(true);
+  };
+
+  const handleNewProduct = () => {
+    setProductToEdit(null);
+    setShowProductForm(true);
   };
 
   const handleDeleteProduct = async () => {
@@ -143,7 +155,7 @@ export default function Products() {
         <Button 
           variant="medical" 
           className="gap-2"
-          onClick={() => setShowProductForm(true)}
+          onClick={handleNewProduct}
         >
           <Plus className="h-4 w-4" />
           Novo Produto
@@ -285,7 +297,12 @@ export default function Products() {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center justify-center gap-2">
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-8 w-8 p-0"
+                            onClick={() => handleEditProduct(product)}
+                          >
                             <Edit3 className="h-4 w-4" />
                           </Button>
                           <Button 
@@ -323,12 +340,16 @@ export default function Products() {
       <Sheet open={showProductForm} onOpenChange={setShowProductForm}>
         <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
           <SheetHeader>
-            <SheetTitle>Novo Produto</SheetTitle>
+            <SheetTitle>{productToEdit ? 'Editar Produto' : 'Novo Produto'}</SheetTitle>
           </SheetHeader>
           <div className="mt-6">
             <ProductForm
+              product={productToEdit}
               onSuccess={handleProductFormSuccess}
-              onCancel={() => setShowProductForm(false)}
+              onCancel={() => {
+                setShowProductForm(false);
+                setProductToEdit(null);
+              }}
             />
           </div>
         </SheetContent>

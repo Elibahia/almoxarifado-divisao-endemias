@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
-import { ProductCategory } from '@/types';
+import { Product, ProductCategory } from '@/types';
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 
@@ -41,26 +41,27 @@ const formSchema = z.object({
 });
 
 interface ProductFormProps {
+  product?: Product | null;
   onSuccess: () => void;
   onCancel: () => void;
 }
 
-export function ProductForm({ onSuccess, onCancel }: ProductFormProps) {
+export function ProductForm({ product, onSuccess, onCancel }: ProductFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      name: "",
-      category: ProductCategory.GRAPHIC_MATERIALS,
-      description: "",
-      batch: "",
-      expirationDate: "",
-      minimumQuantity: 0,
-      currentQuantity: 0,
-      location: "",
-      supplier: "",
+      name: product?.name || "",
+      category: product?.category || ProductCategory.GRAPHIC_MATERIALS,
+      description: product?.description || "",
+      batch: product?.batch || "",
+      expirationDate: product?.expirationDate ? product.expirationDate.toISOString().split('T')[0] : "",
+      minimumQuantity: product?.minimumQuantity || 0,
+      currentQuantity: product?.currentQuantity || 0,
+      location: product?.location || "",
+      supplier: product?.supplier || "",
     },
   });
 
@@ -69,10 +70,13 @@ export function ProductForm({ onSuccess, onCancel }: ProductFormProps) {
     console.log('Submitting product:', values);
 
     try {
-      const { data, error } = await supabase
-        .from('products')
-        .insert([
-          {
+      let data, error;
+      
+      if (product) {
+        // Update existing product
+        const result = await supabase
+          .from('products')
+          .update({
             name: values.name,
             category: values.category,
             description: values.description || null,
@@ -82,19 +86,44 @@ export function ProductForm({ onSuccess, onCancel }: ProductFormProps) {
             current_quantity: values.currentQuantity,
             location: values.location || null,
             supplier: values.supplier || null,
-          }
-        ])
-        .select();
+          })
+          .eq('id', product.id)
+          .select();
+        
+        data = result.data;
+        error = result.error;
+      } else {
+        // Create new product
+        const result = await supabase
+          .from('products')
+          .insert([
+            {
+              name: values.name,
+              category: values.category,
+              description: values.description || null,
+              batch: values.batch,
+              expiration_date: values.expirationDate,
+              minimum_quantity: values.minimumQuantity,
+              current_quantity: values.currentQuantity,
+              location: values.location || null,
+              supplier: values.supplier || null,
+            }
+          ])
+          .select();
+        
+        data = result.data;
+        error = result.error;
+      }
 
       if (error) {
         console.error('Error creating product:', error);
         throw error;
       }
 
-      console.log('Product created successfully:', data);
+      console.log(`Product ${product ? 'updated' : 'created'} successfully:`, data);
       toast({
-        title: "Produto criado com sucesso!",
-        description: `${values.name} foi adicionado ao estoque.`,
+        title: `Produto ${product ? 'atualizado' : 'criado'} com sucesso!`,
+        description: `${values.name} foi ${product ? 'atualizado' : 'adicionado ao estoque'}.`,
       });
       
       onSuccess();
@@ -102,7 +131,7 @@ export function ProductForm({ onSuccess, onCancel }: ProductFormProps) {
       console.error('Error:', error);
       toast({
         variant: "destructive",
-        title: "Erro ao criar produto",
+        title: `Erro ao ${product ? 'atualizar' : 'criar'} produto`,
         description: error.message || "Ocorreu um erro inesperado. Tente novamente.",
       });
     } finally {
@@ -127,7 +156,7 @@ export function ProductForm({ onSuccess, onCancel }: ProductFormProps) {
   return (
     <Card className="w-full max-w-2xl mx-auto">
       <CardHeader>
-        <CardTitle>Novo Produto</CardTitle>
+        <CardTitle>{product ? 'Editar Produto' : 'Novo Produto'}</CardTitle>
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -304,7 +333,7 @@ export function ProductForm({ onSuccess, onCancel }: ProductFormProps) {
                 className="flex-1"
               >
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {isLoading ? 'Salvando...' : 'Salvar Produto'}
+                {isLoading ? 'Salvando...' : (product ? 'Atualizar Produto' : 'Salvar Produto')}
               </Button>
             </div>
           </form>

@@ -115,10 +115,52 @@ export function useProducts() {
     fetchProducts();
   }, []);
 
+  const updateProduct = async (id: string, updates: Partial<Product>) => {
+    console.log('Updating product:', id, updates);
+
+    try {
+      const { error } = await supabase
+        .from('products')
+        .update({
+          name: updates.name,
+          category: updates.category,
+          description: updates.description || null,
+          batch: updates.batch,
+          expiration_date: updates.expirationDate?.toISOString(),
+          minimum_quantity: updates.minimumQuantity,
+          current_quantity: updates.currentQuantity,
+          location: updates.location || null,
+          supplier: updates.supplier || null,
+        })
+        .eq('id', id);
+
+      if (error) {
+        console.error('Error updating product:', error);
+        throw error;
+      }
+
+      toast({
+        title: "Produto atualizado",
+        description: "O produto foi atualizado com sucesso.",
+      });
+
+      // Atualizar a lista local
+      await fetchProducts();
+    } catch (error: any) {
+      console.error('Error in updateProduct:', error);
+      toast({
+        variant: "destructive",
+        title: "Erro ao atualizar produto",
+        description: error.message || "Não foi possível atualizar o produto.",
+      });
+    }
+  };
+
   return {
     products,
     isLoading,
     refetch: fetchProducts,
     deleteProduct,
+    updateProduct,
   };
 }
