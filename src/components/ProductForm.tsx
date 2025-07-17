@@ -25,6 +25,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { Product, ProductCategory } from '@/types';
+import { UNIT_OF_MEASURE_OPTIONS } from '@/types/unitTypes';
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 
@@ -38,10 +39,11 @@ const formSchema = z.object({
   currentQuantity: z.number().min(0, "Quantidade atual deve ser positiva"),
   location: z.string().optional(),
   supplier: z.string().optional(),
+  unitOfMeasure: z.string().min(1, "Unidade de medida é obrigatória"),
 });
 
 interface ProductFormProps {
-  product?: Product | null;
+  product?: (Product & { unitOfMeasure?: string }) | null;
   onSuccess: () => void;
   onCancel: () => void;
 }
@@ -62,6 +64,7 @@ export function ProductForm({ product, onSuccess, onCancel }: ProductFormProps) 
       currentQuantity: product?.currentQuantity || 0,
       location: product?.location || "",
       supplier: product?.supplier || "",
+      unitOfMeasure: product?.unitOfMeasure || 'unid.',
     },
   });
 
@@ -86,6 +89,7 @@ export function ProductForm({ product, onSuccess, onCancel }: ProductFormProps) 
             current_quantity: values.currentQuantity,
             location: values.location || null,
             supplier: values.supplier || null,
+            unit_of_measure: values.unitOfMeasure,
           })
           .eq('id', product.id)
           .select();
@@ -107,6 +111,7 @@ export function ProductForm({ product, onSuccess, onCancel }: ProductFormProps) 
               current_quantity: values.currentQuantity,
               location: values.location || null,
               supplier: values.supplier || null,
+              unit_of_measure: values.unitOfMeasure,
             }
           ])
           .select();
@@ -216,7 +221,7 @@ export function ProductForm({ product, onSuccess, onCancel }: ProductFormProps) 
               )}
             />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <FormField
                 control={form.control}
                 name="batch"
@@ -240,6 +245,31 @@ export function ProductForm({ product, onSuccess, onCancel }: ProductFormProps) 
                     <FormControl>
                       <Input type="date" {...field} />
                     </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="unitOfMeasure"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Unidade de Medida *</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione a unidade" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent className="max-h-60 overflow-y-auto">
+                        {UNIT_OF_MEASURE_OPTIONS.map((unit) => (
+                          <SelectItem key={unit.value} value={unit.value}>
+                            {unit.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}

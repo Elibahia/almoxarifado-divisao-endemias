@@ -47,7 +47,8 @@ import {
   Loader2
 } from "lucide-react";
 import { Product, ProductCategory, ProductStatus } from '@/types';
-import { useProducts } from '@/hooks/useProducts';
+import { useProducts, ProductWithUnit } from '@/hooks/useProducts';
+import { getUnitLabel } from '@/types/unitTypes';
 import { ProductForm } from '@/components/ProductForm';
 
 export default function Products() {
@@ -56,7 +57,7 @@ export default function Products() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [showProductForm, setShowProductForm] = useState(false);
-  const [productToEdit, setProductToEdit] = useState<Product | null>(null);
+  const [productToEdit, setProductToEdit] = useState<ProductWithUnit | null>(null);
   const [productToDelete, setProductToDelete] = useState<string | null>(null);
 
   const filteredProducts = products.filter(product => {
@@ -116,7 +117,7 @@ export default function Products() {
     refetch();
   };
 
-  const handleEditProduct = (product: Product) => {
+  const handleEditProduct = (product: ProductWithUnit) => {
     setProductToEdit(product);
     setShowProductForm(true);
   };
@@ -289,7 +290,10 @@ export default function Products() {
                           }>
                             {product.currentQuantity}
                           </span>
-                          <span className="text-muted-foreground"> / mín: {product.minimumQuantity}</span>
+                          <span className="text-muted-foreground"> {getUnitLabel(product.unitOfMeasure)}</span>
+                          <div className="text-xs text-muted-foreground">
+                            mín: {product.minimumQuantity} {getUnitLabel(product.unitOfMeasure)}
+                          </div>
                         </div>
                       </TableCell>
                       <TableCell>

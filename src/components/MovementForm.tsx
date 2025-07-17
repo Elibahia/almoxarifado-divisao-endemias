@@ -7,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { MovementType } from '@/types';
 import { useProducts } from '@/hooks/useProducts';
+import { getUnitLabel } from '@/types/unitTypes';
 import {
   Dialog,
   DialogContent,
@@ -69,6 +70,8 @@ export default function MovementForm({ isOpen, onClose, onSuccess }: MovementFor
   });
 
   const selectedType = form.watch('type');
+  const selectedProductId = form.watch('productId');
+  const selectedProduct = products.find(p => p.id === selectedProductId);
 
   const onSubmit = async (data: MovementFormData) => {
     setIsLoading(true);
@@ -177,7 +180,7 @@ export default function MovementForm({ isOpen, onClose, onSuccess }: MovementFor
                     <SelectContent>
                       {products.map((product) => (
                         <SelectItem key={product.id} value={product.id}>
-                          {product.name} (Estoque: {product.currentQuantity})
+                          {product.name} (Estoque: {product.currentQuantity} {getUnitLabel(product.unitOfMeasure)})
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -218,6 +221,11 @@ export default function MovementForm({ isOpen, onClose, onSuccess }: MovementFor
                 <FormItem>
                   <FormLabel>
                     Quantidade {selectedType === 'adjustment' && '(Nova quantidade total)'}
+                    {selectedProduct && (
+                      <span className="text-sm text-muted-foreground ml-1">
+                        ({getUnitLabel(selectedProduct.unitOfMeasure)})
+                      </span>
+                    )}
                   </FormLabel>
                   <FormControl>
                     <Input

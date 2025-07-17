@@ -4,8 +4,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { Product, ProductCategory, ProductStatus } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 
+export interface ProductWithUnit extends Product {
+  unitOfMeasure: string;
+}
+
 export function useProducts() {
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<ProductWithUnit[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
@@ -27,7 +31,7 @@ export function useProducts() {
       console.log('Raw products data:', data);
 
       // Transformar os dados do Supabase para o formato esperado
-      const transformedProducts: Product[] = (data || []).map(item => {
+      const transformedProducts: ProductWithUnit[] = (data || []).map(item => {
         const expirationDate = new Date(item.expiration_date);
         const createdAt = new Date(item.created_at);
         const updatedAt = new Date(item.updated_at);
@@ -63,6 +67,7 @@ export function useProducts() {
           status,
           createdAt,
           updatedAt,
+          unitOfMeasure: item.unit_of_measure || 'unid.',
         };
       });
 
@@ -115,7 +120,7 @@ export function useProducts() {
     fetchProducts();
   }, []);
 
-  const updateProduct = async (id: string, updates: Partial<Product>) => {
+  const updateProduct = async (id: string, updates: Partial<ProductWithUnit>) => {
     console.log('Updating product:', id, updates);
 
     try {
@@ -131,6 +136,7 @@ export function useProducts() {
           current_quantity: updates.currentQuantity,
           location: updates.location || null,
           supplier: updates.supplier || null,
+          unit_of_measure: updates.unitOfMeasure || 'unid.',
         })
         .eq('id', id);
 
