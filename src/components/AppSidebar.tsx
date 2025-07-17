@@ -1,14 +1,4 @@
-import { 
-  LayoutDashboard, 
-  Package, 
-  ArrowUpDown, 
-  FileBarChart, 
-  AlertTriangle,
-  Settings,
-  Users,
-  PlusCircle
-} from "lucide-react";
-import { NavLink, useLocation } from "react-router-dom";
+
 import {
   Sidebar,
   SidebarContent,
@@ -18,154 +8,83 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  useSidebar,
-} from "@/components/ui/sidebar";
+  SidebarRail,
+} from "@/components/ui/sidebar"
+import { 
+  BarChart3,
+  Package,
+  ArrowUpDown,
+  AlertTriangle,
+  Users,
+  Settings,
+  ShoppingCart,
+  LayoutDashboard
+} from "lucide-react"
+import { useLocation, Link } from "react-router-dom"
 
 const menuItems = [
   {
     title: "Dashboard",
     url: "/",
-    icon: LayoutDashboard,
+    icon: LayoutDashboard
   },
   {
     title: "Produtos",
     url: "/products",
-    icon: Package,
+    icon: Package
   },
   {
     title: "Movimentações",
     url: "/movements",
-    icon: ArrowUpDown,
+    icon: ArrowUpDown
+  },
+  {
+    title: "Pedidos",
+    url: "/order-requests",
+    icon: ShoppingCart
   },
   {
     title: "Relatórios",
     url: "/reports",
-    icon: FileBarChart,
+    icon: BarChart3
   },
   {
     title: "Alertas",
     url: "/alerts",
-    icon: AlertTriangle,
+    icon: AlertTriangle
   },
-];
-
-const adminItems = [
   {
     title: "Usuários",
     url: "/users",
-    icon: Users,
+    icon: Users
   },
   {
     title: "Configurações",
     url: "/settings",
-    icon: Settings,
-  },
-];
-
-const quickActions = [
-  {
-    title: "Novo Produto",
-    url: "/products/new",
-    icon: PlusCircle,
-  },
-  {
-    title: "Nova Movimentação",
-    url: "/movements/new",
-    icon: ArrowUpDown,
-  },
-];
+    icon: Settings
+  }
+]
 
 export function AppSidebar() {
-  const { state } = useSidebar();
-  const location = useLocation();
-  const currentPath = location.pathname;
-  const collapsed = state === "collapsed";
-
-  const isActive = (path: string) => {
-    if (path === "/" && currentPath === "/") return true;
-    if (path !== "/" && currentPath.startsWith(path)) return true;
-    return false;
-  };
-
-  const getNavClassName = (path: string) => {
-    const baseClasses = "flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:bg-sidebar-accent";
-    const activeClasses = "bg-sidebar-accent text-sidebar-accent-foreground font-medium";
-    const inactiveClasses = "text-sidebar-foreground hover:text-sidebar-accent-foreground";
-    
-    return `${baseClasses} ${isActive(path) ? activeClasses : inactiveClasses}`;
-  };
+  const location = useLocation()
 
   return (
-    <Sidebar className={collapsed ? "w-16" : "w-64"}>
-      <SidebarContent className="py-4">
-        {/* Main Navigation */}
+    <Sidebar collapsible="icon">
+      <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel className="text-xs font-semibold text-sidebar-foreground/60 uppercase tracking-wider">
-            {!collapsed && "Navegação"}
-          </SidebarGroupLabel>
-          <SidebarGroupContent className="mt-2">
+          <SidebarGroupLabel>Menu Principal</SidebarGroupLabel>
+          <SidebarGroupContent>
             <SidebarMenu>
               {menuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild className="h-10">
-                    <NavLink 
-                      to={item.url} 
-                      className={getNavClassName(item.url)}
-                      title={collapsed ? item.title : undefined}
-                    >
-                      <item.icon className="h-5 w-5 flex-shrink-0" />
-                      {!collapsed && <span>{item.title}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        {/* Quick Actions */}
-        <SidebarGroup>
-          <SidebarGroupLabel className="text-xs font-semibold text-sidebar-foreground/60 uppercase tracking-wider">
-            {!collapsed && "Ações Rápidas"}
-          </SidebarGroupLabel>
-          <SidebarGroupContent className="mt-2">
-            <SidebarMenu>
-              {quickActions.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild className="h-10">
-                    <NavLink 
-                      to={item.url} 
-                      className={getNavClassName(item.url)}
-                      title={collapsed ? item.title : undefined}
-                    >
-                      <item.icon className="h-5 w-5 flex-shrink-0" />
-                      {!collapsed && <span>{item.title}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        {/* Admin Section */}
-        <SidebarGroup>
-          <SidebarGroupLabel className="text-xs font-semibold text-sidebar-foreground/60 uppercase tracking-wider">
-            {!collapsed && "Administração"}
-          </SidebarGroupLabel>
-          <SidebarGroupContent className="mt-2">
-            <SidebarMenu>
-              {adminItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild className="h-10">
-                    <NavLink 
-                      to={item.url} 
-                      className={getNavClassName(item.url)}
-                      title={collapsed ? item.title : undefined}
-                    >
-                      <item.icon className="h-5 w-5 flex-shrink-0" />
-                      {!collapsed && <span>{item.title}</span>}
-                    </NavLink>
+                  <SidebarMenuButton 
+                    asChild 
+                    isActive={location.pathname === item.url}
+                  >
+                    <Link to={item.url}>
+                      <item.icon />
+                      <span>{item.title}</span>
+                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
@@ -173,6 +92,7 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+      <SidebarRail />
     </Sidebar>
-  );
+  )
 }
