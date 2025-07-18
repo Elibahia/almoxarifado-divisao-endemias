@@ -52,6 +52,96 @@ export type Database = {
           },
         ]
       }
+      order_request_items: {
+        Row: {
+          created_at: string
+          id: string
+          order_request_id: string
+          product_id: string
+          product_name: string
+          quantity: number
+          unit_of_measure: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          order_request_id: string
+          product_id: string
+          product_name: string
+          quantity: number
+          unit_of_measure: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          order_request_id?: string
+          product_id?: string
+          product_name?: string
+          quantity?: number
+          unit_of_measure?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_request_items_order_request_id_fkey"
+            columns: ["order_request_id"]
+            isOneToOne: false
+            referencedRelation: "order_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_request_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      order_requests: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          created_by: string | null
+          delivered_at: string | null
+          id: string
+          observations: string | null
+          request_date: string
+          requester_name: string
+          status: string
+          subdistrict: string
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          delivered_at?: string | null
+          id?: string
+          observations?: string | null
+          request_date?: string
+          requester_name: string
+          status?: string
+          subdistrict: string
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          delivered_at?: string | null
+          id?: string
+          observations?: string | null
+          request_date?: string
+          requester_name?: string
+          status?: string
+          subdistrict?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       products: {
         Row: {
           batch: string

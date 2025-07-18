@@ -16,6 +16,7 @@ import Alerts from "./pages/Alerts";
 import Users from "./pages/Users";
 import Settings from "./pages/Settings";
 import OrderRequests from "./pages/OrderRequests";
+import OrderManagement from "./pages/OrderManagement";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -100,6 +101,13 @@ const App = () => (
               <ProtectedRoute>
                 <Layout>
                   <OrderRequests />
+                </Layout>
+              </ProtectedRoute>
+            } />
+            <Route path="/order-management" element={
+              <ProtectedRoute>
+                <Layout>
+                  <OrderManagement />
                 </Layout>
               </ProtectedRoute>
             } />

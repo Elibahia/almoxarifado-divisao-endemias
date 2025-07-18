@@ -18,7 +18,8 @@ import {
   Users,
   Settings,
   ShoppingCart,
-  LayoutDashboard
+  LayoutDashboard,
+  CheckSquare
 } from "lucide-react"
 import { useLocation, Link } from "react-router-dom"
 
@@ -39,9 +40,14 @@ const menuItems = [
     icon: ArrowUpDown
   },
   {
-    title: "Pedidos",
+    title: "Solicitar Pedidos",
     url: "/order-requests",
     icon: ShoppingCart
+  },
+  {
+    title: "Gerenciar Pedidos",
+    url: "/order-management",
+    icon: CheckSquare
   },
   {
     title: "Relatórios",

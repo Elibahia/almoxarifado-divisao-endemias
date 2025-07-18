@@ -12,8 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { useToast } from '@/hooks/use-toast';
 import { useProducts } from '@/hooks/useProducts';
+import { useOrderRequests } from '@/hooks/useOrderRequests';
 import { OrderFormData, OrderProduct, SUBDISTRICTS } from '@/types/orderTypes';
 import { UNIT_OF_MEASURE_OPTIONS } from '@/types/unitTypes';
 
@@ -31,9 +31,8 @@ const orderSchema = z.object({
 });
 
 export function OrderRequestForm() {
-  const { toast } = useToast();
   const { products } = useProducts();
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { createOrderRequest } = useOrderRequests();
   const [orderProducts, setOrderProducts] = useState<OrderProduct[]>([
     { id: '1', productId: '', productName: '', quantity: 1, unitOfMeasure: 'unid.' }
   ]);
@@ -63,23 +62,17 @@ export function OrderRequestForm() {
 
   const removeProductRow = useCallback((id: string) => {
     if (orderProducts.length === 1) {
-      toast({
-        variant: 'destructive',
-        title: 'Erro',
-        description: 'Pelo menos um produto deve ser mantido no pedido.',
-      });
       return;
     }
     const updatedProducts = orderProducts.filter(p => p.id !== id);
     setOrderProducts(updatedProducts);
     form.setValue('products', updatedProducts);
-  }, [orderProducts, form, toast]);
+  }, [orderProducts, form]);
 
   const updateProduct = useCallback((id: string, field: keyof OrderProduct, value: string | number) => {
     const updatedProducts = orderProducts.map(p => {
       if (p.id === id) {
         const updatedProduct = { ...p, [field]: value };
-        // If product is selected, update the product name
         if (field === 'productId' && typeof value === 'string') {
           const selectedProduct = products.find(prod => prod.id === value);
           if (selectedProduct) {
@@ -96,36 +89,19 @@ export function OrderRequestForm() {
   }, [orderProducts, products, form]);
 
   const onSubmit = async (data: OrderFormData) => {
-    setIsSubmitting(true);
     try {
-      // Simulate API call - replace with actual API endpoint
-      const orderData = {
-        ...data,
-        requestDate: new Date(),
+      await createOrderRequest.mutateAsync({
+        requesterName: data.requesterName,
+        subdistrict: data.subdistrict,
         products: orderProducts,
-      };
-
-      console.log('Submitting order:', orderData);
-      
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      toast({
-        title: 'Pedido enviado com sucesso!',
-        description: 'Seu pedido foi registrado e será processado em breve.',
+        observations: data.observations,
       });
 
       // Reset form
       form.reset();
       setOrderProducts([{ id: '1', productId: '', productName: '', quantity: 1, unitOfMeasure: 'unid.' }]);
     } catch (error) {
-      toast({
-        variant: 'destructive',
-        title: 'Erro ao enviar pedido',
-        description: 'Ocorreu um erro ao enviar seu pedido. Tente novamente.',
-      });
-    } finally {
-      setIsSubmitting(false);
+      console.error('Error submitting order:', error);
     }
   };
 
@@ -332,10 +308,10 @@ export function OrderRequestForm() {
             <Button
               type="submit"
               size="lg"
-              disabled={isSubmitting}
+              disabled={createOrderRequest.isPending}
               className="px-8"
             >
-              {isSubmitting ? (
+              {createOrderRequest.isPending ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                   Enviando...
