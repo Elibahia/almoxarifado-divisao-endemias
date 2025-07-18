@@ -42,7 +42,7 @@ export function useOrderRequests() {
         subdistrict: order.subdistrict,
         requestDate: new Date(order.request_date),
         observations: order.observations,
-        status: order.status,
+        status: order.status as 'pending' | 'approved' | 'delivered' | 'cancelled',
         createdBy: order.created_by,
         approvedBy: order.approved_by,
         approvedAt: order.approved_at,
@@ -67,7 +67,7 @@ export function useOrderRequests() {
             quantity: item.quantity,
             unitOfMeasure: item.unit_of_measure,
           })),
-      }));
+      })) as OrderRequestWithItems[];
     },
   });
 

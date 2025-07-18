@@ -27,7 +27,7 @@ const statusMap = {
   approved: { label: 'Aprovado', color: 'bg-blue-500', icon: CheckCircle },
   delivered: { label: 'Entregue', color: 'bg-green-500', icon: Truck },
   cancelled: { label: 'Cancelado', color: 'bg-red-500', icon: XCircle },
-};
+} as const;
 
 export function OrderManagement() {
   const { orderRequests, isLoading, updateOrderStatus } = useOrderRequests();
@@ -41,7 +41,7 @@ export function OrderManagement() {
   const getStatusCounts = () => {
     const counts = { pending: 0, approved: 0, delivered: 0, cancelled: 0, total: 0 };
     filteredOrders.forEach(order => {
-      counts[order.status as keyof typeof counts]++;
+      counts[order.status]++;
       counts.total++;
     });
     return counts;
