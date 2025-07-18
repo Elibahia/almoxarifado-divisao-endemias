@@ -39,19 +39,28 @@ export function useUsers() {
     }
   };
 
-  const createUser = async (email: string, name: string, role: 'admin' | 'gestor_almoxarifado' | 'supervisor_geral') => {
+  const createUser = async (email: string, name: string, role: 'admin' | 'gestor_almoxarifado' | 'supervisor_geral', password: string) => {
     try {
-      // Create auth user first
+      // Create auth user with provided password
       const { data, error: authError } = await supabase.auth.admin.createUser({
         email,
-        password: 'TempPass123!', // Temporary password - user should change
+        password,
         email_confirm: true,
         user_metadata: { name }
       });
 
       if (authError) throw authError;
 
-      // The trigger will automatically create the profile
+      // The trigger will automatically create the profile, but we need to update the role
+      if (data.user) {
+        const { error: updateError } = await supabase
+          .from('user_profiles')
+          .update({ role, name })
+          .eq('id', data.user.id);
+
+        if (updateError) throw updateError;
+      }
+
       await fetchUsers();
       
       toast({

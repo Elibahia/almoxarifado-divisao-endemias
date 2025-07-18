@@ -23,6 +23,7 @@ interface UserFormData {
   email: string;
   name: string;
   role: 'admin' | 'gestor_almoxarifado' | 'supervisor_geral';
+  password: string;
 }
 
 interface UserFormProps {
@@ -35,6 +36,7 @@ export function UserForm({ onSubmit }: UserFormProps) {
     email: '',
     name: '',
     role: 'gestor_almoxarifado',
+    password: '',
   });
   const [loading, setLoading] = useState(false);
 
@@ -45,7 +47,7 @@ export function UserForm({ onSubmit }: UserFormProps) {
     const result = await onSubmit(formData);
     
     if (result.success) {
-      setFormData({ email: '', name: '', role: 'gestor_almoxarifado' });
+      setFormData({ email: '', name: '', role: 'gestor_almoxarifado', password: '' });
       setOpen(false);
     }
     
@@ -83,6 +85,19 @@ export function UserForm({ onSubmit }: UserFormProps) {
               value={formData.name}
               onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
               required
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="password">Senha</Label>
+            <Input
+              id="password"
+              type="password"
+              value={formData.password}
+              onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
+              required
+              minLength={6}
+              placeholder="Mínimo 6 caracteres"
             />
           </div>
           

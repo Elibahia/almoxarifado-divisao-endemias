@@ -22,57 +22,72 @@ import {
   CheckSquare
 } from "lucide-react"
 import { useLocation, Link } from "react-router-dom"
+import { useAuth } from "@/hooks/useAuth"
 
 const menuItems = [
   {
     title: "Dashboard",
     url: "/",
-    icon: LayoutDashboard
+    icon: LayoutDashboard,
+    roles: ["admin", "gestor_almoxarifado", "supervisor_geral"]
   },
   {
     title: "Produtos",
     url: "/products",
-    icon: Package
+    icon: Package,
+    roles: ["admin", "gestor_almoxarifado"]
   },
   {
     title: "Movimentações",
     url: "/movements",
-    icon: ArrowUpDown
+    icon: ArrowUpDown,
+    roles: ["admin", "gestor_almoxarifado"]
   },
   {
     title: "Solicitar Pedidos",
     url: "/order-requests",
-    icon: ShoppingCart
+    icon: ShoppingCart,
+    roles: ["admin", "gestor_almoxarifado", "supervisor_geral"]
   },
   {
     title: "Gerenciar Pedidos",
     url: "/order-management",
-    icon: CheckSquare
+    icon: CheckSquare,
+    roles: ["admin", "gestor_almoxarifado", "supervisor_geral"]
   },
   {
     title: "Relatórios",
     url: "/reports",
-    icon: BarChart3
+    icon: BarChart3,
+    roles: ["admin", "gestor_almoxarifado"]
   },
   {
     title: "Alertas",
     url: "/alerts",
-    icon: AlertTriangle
+    icon: AlertTriangle,
+    roles: ["admin", "gestor_almoxarifado"]
   },
   {
     title: "Usuários",
     url: "/users",
-    icon: Users
+    icon: Users,
+    roles: ["admin"]
   },
   {
     title: "Configurações",
     url: "/settings",
-    icon: Settings
+    icon: Settings,
+    roles: ["admin", "gestor_almoxarifado"]
   }
 ]
 
 export function AppSidebar() {
   const location = useLocation()
+  const { userProfile } = useAuth()
+
+  const filteredMenuItems = menuItems.filter(item => 
+    userProfile && item.roles.includes(userProfile.role)
+  )
 
   return (
     <Sidebar collapsible="icon">
@@ -81,7 +96,7 @@ export function AppSidebar() {
           <SidebarGroupLabel>Menu Principal</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {menuItems.map((item) => (
+              {filteredMenuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton 
                     asChild 

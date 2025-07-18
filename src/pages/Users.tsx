@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,8 +13,8 @@ export default function UsersPage() {
   const { users, loading, createUser, updateUser, deleteUser } = useUsers();
   const { userProfile } = useAuth();
 
-  const handleCreateUser = async (data: { email: string; name: string; role: 'admin' | 'gestor_almoxarifado' | 'supervisor_geral' }) => {
-    return await createUser(data.email, data.name, data.role);
+  const handleCreateUser = async (data: { email: string; name: string; role: 'admin' | 'gestor_almoxarifado' | 'supervisor_geral'; password: string }) => {
+    return await createUser(data.email, data.name, data.role, data.password);
   };
 
   const handleToggleActive = async (userId: string, isActive: boolean) => {
