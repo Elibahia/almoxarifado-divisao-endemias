@@ -7,7 +7,7 @@ export interface UserProfile {
   id: string;
   email: string;
   name: string | null;
-  role: 'admin' | 'gestor_almoxarifado';
+  role: 'admin' | 'gestor_almoxarifado' | 'supervisor_geral';
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -179,6 +179,7 @@ export function useAuth() {
 
   const isAdmin = () => userProfile?.role === 'admin';
   const isGestor = () => userProfile?.role === 'gestor_almoxarifado';
+  const isSupervisor = () => userProfile?.role === 'supervisor_geral';
 
   return {
     user,
@@ -190,5 +191,6 @@ export function useAuth() {
     signOut,
     isAdmin,
     isGestor,
+    isSupervisor,
   };
 }

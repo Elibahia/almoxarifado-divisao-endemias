@@ -7,7 +7,7 @@ export interface UserProfile {
   id: string;
   email: string;
   name: string | null;
-  role: 'admin' | 'gestor_almoxarifado';
+  role: 'admin' | 'gestor_almoxarifado' | 'supervisor_geral';
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -39,7 +39,7 @@ export function useUsers() {
     }
   };
 
-  const createUser = async (email: string, name: string, role: 'admin' | 'gestor_almoxarifado') => {
+  const createUser = async (email: string, name: string, role: 'admin' | 'gestor_almoxarifado' | 'supervisor_geral') => {
     try {
       // Create auth user first
       const { data, error: authError } = await supabase.auth.admin.createUser({

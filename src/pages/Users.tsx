@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Switch } from "@/components/ui/switch";
-import { Users, Shield, UserCog, Trash2 } from "lucide-react";
+import { Users, Shield, UserCog, Trash2, Eye } from "lucide-react";
 import { UserForm } from "@/components/UserForm";
 import { useUsers } from "@/hooks/useUsers";
 import { useAuth } from "@/hooks/useAuth";
@@ -14,7 +14,7 @@ export default function UsersPage() {
   const { users, loading, createUser, updateUser, deleteUser } = useUsers();
   const { userProfile } = useAuth();
 
-  const handleCreateUser = async (data: { email: string; name: string; role: 'admin' | 'gestor_almoxarifado' }) => {
+  const handleCreateUser = async (data: { email: string; name: string; role: 'admin' | 'gestor_almoxarifado' | 'supervisor_geral' }) => {
     return await createUser(data.email, data.name, data.role);
   };
 
@@ -29,15 +29,30 @@ export default function UsersPage() {
   };
 
   const getRoleBadge = (role: string) => {
-    return role === 'admin' ? 
-      <Badge variant="destructive" className="flex items-center gap-1">
-        <Shield className="h-3 w-3" />
-        Administrador
-      </Badge> :
-      <Badge variant="secondary" className="flex items-center gap-1">
-        <UserCog className="h-3 w-3" />
-        Gestor Almoxarifado
-      </Badge>;
+    switch (role) {
+      case 'admin':
+        return (
+          <Badge variant="destructive" className="flex items-center gap-1">
+            <Shield className="h-3 w-3" />
+            Administrador
+          </Badge>
+        );
+      case 'supervisor_geral':
+        return (
+          <Badge variant="default" className="flex items-center gap-1">
+            <Eye className="h-3 w-3" />
+            Supervisor Geral
+          </Badge>
+        );
+      case 'gestor_almoxarifado':
+      default:
+        return (
+          <Badge variant="secondary" className="flex items-center gap-1">
+            <UserCog className="h-3 w-3" />
+            Gestor Almoxarifado
+          </Badge>
+        );
+    }
   };
 
   // Check if current user is admin
@@ -71,7 +86,7 @@ export default function UsersPage() {
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
@@ -91,6 +106,19 @@ export default function UsersPage() {
                 <p className="text-sm text-muted-foreground">Administradores</p>
                 <p className="text-2xl font-bold">
                   {users.filter(u => u.role === 'admin').length}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2">
+              <Eye className="h-5 w-5 text-primary" />
+              <div>
+                <p className="text-sm text-muted-foreground">Supervisores</p>
+                <p className="text-2xl font-bold">
+                  {users.filter(u => u.role === 'supervisor_geral').length}
                 </p>
               </div>
             </div>

@@ -22,7 +22,7 @@ import { UserPlus } from "lucide-react";
 interface UserFormData {
   email: string;
   name: string;
-  role: 'admin' | 'gestor_almoxarifado';
+  role: 'admin' | 'gestor_almoxarifado' | 'supervisor_geral';
 }
 
 interface UserFormProps {
@@ -88,13 +88,14 @@ export function UserForm({ onSubmit }: UserFormProps) {
           
           <div>
             <Label htmlFor="role">Função</Label>
-            <Select onValueChange={(value) => setFormData(prev => ({ ...prev, role: value as 'admin' | 'gestor_almoxarifado' }))}>
+            <Select onValueChange={(value) => setFormData(prev => ({ ...prev, role: value as 'admin' | 'gestor_almoxarifado' | 'supervisor_geral' }))}>
               <SelectTrigger>
                 <SelectValue placeholder="Selecione a função" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="admin">Administrador</SelectItem>
                 <SelectItem value="gestor_almoxarifado">Gestor Almoxarifado</SelectItem>
+                <SelectItem value="supervisor_geral">Supervisor Geral</SelectItem>
               </SelectContent>
             </Select>
           </div>
