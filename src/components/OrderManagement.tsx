@@ -184,144 +184,147 @@ export function OrderManagement() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredOrders.map((order) => (
-                  <TableRow key={order.id}>
-                    <TableCell className="font-medium">
-                      <div className="flex items-center gap-2">
-                        <User className="h-4 w-4 text-muted-foreground" />
-                        {order.requesterName}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{order.subdistrict}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-muted-foreground" />
-                        {format(order.requestDate, 'dd/MM/yyyy', { locale: ptBR })}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={`${statusMap[order.status].color} text-white`}>
-                        <statusMap[order.status].icon className="h-3 w-3 mr-1" />
-                        {statusMap[order.status].label}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-sm text-muted-foreground">
-                        {order.items.length} item(s)
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => setSelectedOrder(order)}
-                            >
-                              Ver Detalhes
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent className="max-w-2xl">
-                            <DialogHeader>
-                              <DialogTitle>Detalhes do Pedido</DialogTitle>
-                            </DialogHeader>
-                            {selectedOrder && (
-                              <div className="space-y-4">
-                                <div className="grid grid-cols-2 gap-4">
-                                  <div>
-                                    <label className="font-semibold">Solicitante:</label>
-                                    <p>{selectedOrder.requesterName}</p>
+                {filteredOrders.map((order) => {
+                  const StatusIcon = statusMap[order.status].icon;
+                  return (
+                    <TableRow key={order.id}>
+                      <TableCell className="font-medium">
+                        <div className="flex items-center gap-2">
+                          <User className="h-4 w-4 text-muted-foreground" />
+                          {order.requesterName}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{order.subdistrict}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-4 w-4 text-muted-foreground" />
+                          {format(order.requestDate, 'dd/MM/yyyy', { locale: ptBR })}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={`${statusMap[order.status].color} text-white`}>
+                          <StatusIcon className="h-3 w-3 mr-1" />
+                          {statusMap[order.status].label}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-sm text-muted-foreground">
+                          {order.items.length} item(s)
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-2">
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setSelectedOrder(order)}
+                              >
+                                Ver Detalhes
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-2xl">
+                              <DialogHeader>
+                                <DialogTitle>Detalhes do Pedido</DialogTitle>
+                              </DialogHeader>
+                              {selectedOrder && (
+                                <div className="space-y-4">
+                                  <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                      <label className="font-semibold">Solicitante:</label>
+                                      <p>{selectedOrder.requesterName}</p>
+                                    </div>
+                                    <div>
+                                      <label className="font-semibold">Subdistrito:</label>
+                                      <p>{selectedOrder.subdistrict}</p>
+                                    </div>
+                                    <div>
+                                      <label className="font-semibold">Data do Pedido:</label>
+                                      <p>{format(selectedOrder.requestDate, 'dd/MM/yyyy', { locale: ptBR })}</p>
+                                    </div>
+                                    <div>
+                                      <label className="font-semibold">Status:</label>
+                                      <Badge className={`${statusMap[selectedOrder.status].color} text-white`}>
+                                        {statusMap[selectedOrder.status].label}
+                                      </Badge>
+                                    </div>
                                   </div>
-                                  <div>
-                                    <label className="font-semibold">Subdistrito:</label>
-                                    <p>{selectedOrder.subdistrict}</p>
-                                  </div>
-                                  <div>
-                                    <label className="font-semibold">Data do Pedido:</label>
-                                    <p>{format(selectedOrder.requestDate, 'dd/MM/yyyy', { locale: ptBR })}</p>
-                                  </div>
-                                  <div>
-                                    <label className="font-semibold">Status:</label>
-                                    <Badge className={`${statusMap[selectedOrder.status].color} text-white`}>
-                                      {statusMap[selectedOrder.status].label}
-                                    </Badge>
-                                  </div>
-                                </div>
 
-                                <div>
-                                  <h4 className="font-semibold mb-2">Produtos Solicitados:</h4>
-                                  <Table>
-                                    <TableHeader>
-                                      <TableRow>
-                                        <TableHead>Produto</TableHead>
-                                        <TableHead>Quantidade</TableHead>
-                                        <TableHead>Unidade</TableHead>
-                                      </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                      {selectedOrder.items.map((item) => (
-                                        <TableRow key={item.id}>
-                                          <TableCell>{item.productName}</TableCell>
-                                          <TableCell>{item.quantity}</TableCell>
-                                          <TableCell>{item.unitOfMeasure}</TableCell>
+                                  <div>
+                                    <h4 className="font-semibold mb-2">Produtos Solicitados:</h4>
+                                    <Table>
+                                      <TableHeader>
+                                        <TableRow>
+                                          <TableHead>Produto</TableHead>
+                                          <TableHead>Quantidade</TableHead>
+                                          <TableHead>Unidade</TableHead>
                                         </TableRow>
-                                      ))}
-                                    </TableBody>
-                                  </Table>
-                                </div>
-
-                                {selectedOrder.observations && (
-                                  <div>
-                                    <label className="font-semibold">Observações:</label>
-                                    <p className="text-sm text-muted-foreground mt-1">
-                                      {selectedOrder.observations}
-                                    </p>
+                                      </TableHeader>
+                                      <TableBody>
+                                        {selectedOrder.items.map((item) => (
+                                          <TableRow key={item.id}>
+                                            <TableCell>{item.productName}</TableCell>
+                                            <TableCell>{item.quantity}</TableCell>
+                                            <TableCell>{item.unitOfMeasure}</TableCell>
+                                          </TableRow>
+                                        ))}
+                                      </TableBody>
+                                    </Table>
                                   </div>
-                                )}
 
-                                <div className="flex gap-2 pt-4">
-                                  {selectedOrder.status === 'pending' && (
-                                    <>
-                                      <Button
-                                        onClick={() => handleStatusUpdate(selectedOrder.id, 'approved')}
-                                        disabled={updateOrderStatus.isPending}
-                                        className="bg-blue-600 hover:bg-blue-700"
-                                      >
-                                        <CheckCircle className="h-4 w-4 mr-2" />
-                                        Aprovar
-                                      </Button>
-                                      <Button
-                                        variant="destructive"
-                                        onClick={() => handleStatusUpdate(selectedOrder.id, 'cancelled')}
-                                        disabled={updateOrderStatus.isPending}
-                                      >
-                                        <XCircle className="h-4 w-4 mr-2" />
-                                        Cancelar
-                                      </Button>
-                                    </>
+                                  {selectedOrder.observations && (
+                                    <div>
+                                      <label className="font-semibold">Observações:</label>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {selectedOrder.observations}
+                                      </p>
+                                    </div>
                                   )}
-                                  {selectedOrder.status === 'approved' && (
-                                    <Button
-                                      onClick={() => handleStatusUpdate(selectedOrder.id, 'delivered')}
-                                      disabled={updateOrderStatus.isPending}
-                                      className="bg-green-600 hover:bg-green-700"
-                                    >
-                                      <Truck className="h-4 w-4 mr-2" />
-                                      Marcar como Entregue
-                                    </Button>
-                                  )}
+
+                                  <div className="flex gap-2 pt-4">
+                                    {selectedOrder.status === 'pending' && (
+                                      <>
+                                        <Button
+                                          onClick={() => handleStatusUpdate(selectedOrder.id, 'approved')}
+                                          disabled={updateOrderStatus.isPending}
+                                          className="bg-blue-600 hover:bg-blue-700"
+                                        >
+                                          <CheckCircle className="h-4 w-4 mr-2" />
+                                          Aprovar
+                                        </Button>
+                                        <Button
+                                          variant="destructive"
+                                          onClick={() => handleStatusUpdate(selectedOrder.id, 'cancelled')}
+                                          disabled={updateOrderStatus.isPending}
+                                        >
+                                          <XCircle className="h-4 w-4 mr-2" />
+                                          Cancelar
+                                        </Button>
+                                      </>
+                                    )}
+                                    {selectedOrder.status === 'approved' && (
+                                      <Button
+                                        onClick={() => handleStatusUpdate(selectedOrder.id, 'delivered')}
+                                        disabled={updateOrderStatus.isPending}
+                                        className="bg-green-600 hover:bg-green-700"
+                                      >
+                                        <Truck className="h-4 w-4 mr-2" />
+                                        Marcar como Entregue
+                                      </Button>
+                                    )}
+                                  </div>
                                 </div>
-                              </div>
-                            )}
-                          </DialogContent>
-                        </Dialog>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                              )}
+                            </DialogContent>
+                          </Dialog>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </div>
