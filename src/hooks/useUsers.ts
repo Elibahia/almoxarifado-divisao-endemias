@@ -71,11 +71,18 @@ export function useUsers() {
     }
   };
 
-  const updateUser = async (id: string, updates: Partial<UserProfile>) => {
+  const updateUser = async (id: string, updates: Partial<Pick<UserProfile, 'name' | 'role' | 'is_active'>>) => {
     try {
+      // Usar uma tipagem mais explícita para evitar conflitos de tipo
+      const updateData: any = {};
+      
+      if (updates.name !== undefined) updateData.name = updates.name;
+      if (updates.role !== undefined) updateData.role = updates.role;
+      if (updates.is_active !== undefined) updateData.is_active = updates.is_active;
+
       const { error } = await supabase
         .from('user_profiles')
-        .update(updates)
+        .update(updateData)
         .eq('id', id);
 
       if (error) throw error;
