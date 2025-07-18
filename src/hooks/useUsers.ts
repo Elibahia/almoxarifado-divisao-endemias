@@ -82,8 +82,8 @@ export function useUsers() {
 
   const updateUser = async (id: string, updates: Partial<Pick<UserProfile, 'name' | 'role' | 'is_active'>>) => {
     try {
-      // Usar uma tipagem mais explícita para evitar conflitos de tipo
-      const updateData: any = {};
+      // Build the update object explicitly to ensure proper typing
+      const updateData: Record<string, any> = {};
       
       if (updates.name !== undefined) updateData.name = updates.name;
       if (updates.role !== undefined) updateData.role = updates.role;
