@@ -74,18 +74,20 @@ export default function UsersPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Usuários</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl md:text-3xl font-bold text-foreground">Usuários</h1>
+          <p className="text-sm md:text-base text-muted-foreground">
             Gerenciar usuários e permissões do sistema
           </p>
         </div>
-        <UserForm onSubmit={handleCreateUser} />
+        <div className="w-full sm:w-auto">
+          <UserForm onSubmit={handleCreateUser} />
+        </div>
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
@@ -147,57 +149,120 @@ export default function UsersPage() {
           {loading ? (
             <div className="text-center py-8">Carregando usuários...</div>
           ) : (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Função</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Criado em</TableHead>
-                    <TableHead className="text-right">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {users.map((user) => (
-                    <TableRow key={user.id}>
-                      <TableCell className="font-medium">
-                        {user.name || 'Sem nome'}
-                      </TableCell>
-                      <TableCell>{user.email}</TableCell>
-                      <TableCell>{getRoleBadge(user.role)}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
+            <>
+              {/* Desktop Table */}
+              <div className="hidden md:block rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Nome</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Função</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Criado em</TableHead>
+                      <TableHead className="text-right">Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {users.map((user) => (
+                      <TableRow key={user.id}>
+                        <TableCell className="font-medium">
+                          {user.name || 'Sem nome'}
+                        </TableCell>
+                        <TableCell>{user.email}</TableCell>
+                        <TableCell>{getRoleBadge(user.role)}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Switch
+                              checked={user.is_active}
+                              onCheckedChange={(checked) => handleToggleActive(user.id, checked)}
+                              disabled={user.id === userProfile?.id} // Can't disable own account
+                            />
+                            <span className="text-sm">
+                              {user.is_active ? 'Ativo' : 'Inativo'}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {new Date(user.created_at).toLocaleDateString('pt-BR')}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDeleteUser(user.id)}
+                            disabled={user.id === userProfile?.id} // Can't delete own account
+                            title="Desativar usuário"
+                          >
+                            <UserX className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Mobile Cards */}
+              <div className="md:hidden space-y-4">
+                {users.map((user) => (
+                  <Card key={user.id} className="p-4">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-medium text-foreground truncate">
+                          {user.name || 'Sem nome'}
+                        </h3>
+                        <p className="text-sm text-muted-foreground truncate">
+                          {user.email}
+                        </p>
+                      </div>
+                      <div className="flex gap-2 ml-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDeleteUser(user.id)}
+                          disabled={user.id === userProfile?.id}
+                          title="Desativar usuário"
+                          className="h-8 w-8 p-0"
+                        >
+                          <UserX className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 gap-3 text-sm">
+                      <div>
+                        <span className="text-muted-foreground">Função:</span>
+                        <div className="mt-1">
+                          {getRoleBadge(user.role)}
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <span className="text-muted-foreground">Status:</span>
+                        <div className="flex items-center gap-2 mt-1">
                           <Switch
                             checked={user.is_active}
                             onCheckedChange={(checked) => handleToggleActive(user.id, checked)}
-                            disabled={user.id === userProfile?.id} // Can't disable own account
+                            disabled={user.id === userProfile?.id}
                           />
                           <span className="text-sm">
                             {user.is_active ? 'Ativo' : 'Inativo'}
                           </span>
                         </div>
-                      </TableCell>
-                      <TableCell>
-                        {new Date(user.created_at).toLocaleDateString('pt-BR')}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleDeleteUser(user.id)}
-                          disabled={user.id === userProfile?.id} // Can't delete own account
-                          title="Desativar usuário"
-                        >
-                          <UserX className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                      </div>
+                      
+                      <div>
+                        <span className="text-muted-foreground">Criado em:</span>
+                        <div className="mt-1">
+                          {new Date(user.created_at).toLocaleDateString('pt-BR')}
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

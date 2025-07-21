@@ -55,20 +55,21 @@ export function Layout({ children }: LayoutProps) {
         
         <div className="flex-1 flex flex-col">
           {/* Header */}
-          <header className="h-16 flex items-center justify-between px-6 border-b bg-card shadow-sm">
-            <div className="flex items-center gap-4">
+          <header className="h-16 flex items-center justify-between px-4 md:px-6 border-b bg-card shadow-sm">
+            <div className="flex items-center gap-2 md:gap-4 min-w-0 flex-1">
               <SidebarTrigger />
-              <div>
-                <h1 className="text-xl font-semibold text-foreground">
-                  Sistema de Almoxarifado
+              <div className="min-w-0 flex-1">
+                <h1 className="text-lg md:text-xl font-semibold text-foreground truncate">
+                  <span className="hidden sm:inline">Sistema de Almoxarifado</span>
+                  <span className="sm:hidden">Almoxarifado</span>
                 </h1>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-xs md:text-sm text-muted-foreground hidden sm:block">
                   Gestão de Estoque Divisão de Endemias
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 md:gap-3 flex-shrink-0">
               {/* Theme Toggle */}
               <ThemeToggle />
 
@@ -111,7 +112,7 @@ export function Layout({ children }: LayoutProps) {
           </header>
 
           {/* Main Content */}
-          <main className="flex-1 p-6 overflow-auto">
+          <main className="flex-1 p-4 md:p-6 overflow-auto">
             {children}
           </main>
         </div>

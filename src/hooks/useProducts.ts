@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Product, ProductCategory, ProductStatus } from '@/types';
 import { useToast } from '@/hooks/use-toast';
@@ -13,7 +13,25 @@ export function useProducts() {
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
-  const fetchProducts = async () => {
+  // Função para calcular status do produto (memoizada)
+  const calculateProductStatus = useCallback((item: any): ProductStatus => {
+    const expirationDate = new Date(item.expiration_date);
+    const today = new Date();
+    const timeDiff = expirationDate.getTime() - today.getTime();
+    const daysDiff = Math.ceil(timeDiff / (1000 * 3600 * 24));
+
+    if (daysDiff < 0) {
+      return ProductStatus.EXPIRED;
+    } else if (item.current_quantity === 0) {
+      return ProductStatus.OUT_OF_STOCK;
+    } else if (item.current_quantity <= item.minimum_quantity) {
+      return ProductStatus.LOW_STOCK;
+    } else {
+      return ProductStatus.ACTIVE;
+    }
+  }, []);
+
+  const fetchProducts = useCallback(async () => {
     setIsLoading(true);
     console.log('Fetching products from Supabase...');
 
@@ -31,45 +49,22 @@ export function useProducts() {
       console.log('Raw products data:', data);
 
       // Transformar os dados do Supabase para o formato esperado
-      const transformedProducts: ProductWithUnit[] = (data || []).map(item => {
-        const expirationDate = new Date(item.expiration_date);
-        const createdAt = new Date(item.created_at);
-        const updatedAt = new Date(item.updated_at);
-
-        // Determinar o status baseado na lógica de negócio
-        let status: ProductStatus = ProductStatus.ACTIVE;
-        
-        const today = new Date();
-        const timeDiff = expirationDate.getTime() - today.getTime();
-        const daysDiff = Math.ceil(timeDiff / (1000 * 3600 * 24));
-
-        if (daysDiff < 0) {
-          status = ProductStatus.EXPIRED;
-        } else if (item.current_quantity === 0) {
-          status = ProductStatus.OUT_OF_STOCK;
-        } else if (item.current_quantity <= item.minimum_quantity) {
-          status = ProductStatus.LOW_STOCK;
-        } else {
-          status = ProductStatus.ACTIVE;
-        }
-
-        return {
-          id: item.id,
-          name: item.name,
-          category: item.category as ProductCategory,
-          description: item.description,
-          batch: item.batch,
-          expirationDate,
-          minimumQuantity: item.minimum_quantity,
-          currentQuantity: item.current_quantity,
-          location: item.location,
-          supplier: item.supplier,
-          status,
-          createdAt,
-          updatedAt,
-          unitOfMeasure: item.unit_of_measure || 'unid.',
-        };
-      });
+      const transformedProducts: ProductWithUnit[] = (data || []).map(item => ({
+        id: item.id,
+        name: item.name,
+        category: item.category as ProductCategory,
+        description: item.description,
+        batch: item.batch,
+        expirationDate: new Date(item.expiration_date),
+        minimumQuantity: item.minimum_quantity,
+        currentQuantity: item.current_quantity,
+        location: item.location,
+        supplier: item.supplier,
+        status: calculateProductStatus(item),
+        createdAt: new Date(item.created_at),
+        updatedAt: new Date(item.updated_at),
+        unitOfMeasure: item.unit_of_measure || 'unid.',
+      }));
 
       console.log('Transformed products:', transformedProducts);
       setProducts(transformedProducts);
@@ -83,7 +78,7 @@ export function useProducts() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [calculateProductStatus, toast]);
 
   const deleteProduct = async (id: string) => {
     console.log('Deleting product:', id);
@@ -118,7 +113,7 @@ export function useProducts() {
 
   useEffect(() => {
     fetchProducts();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const updateProduct = async (id: string, updates: Partial<ProductWithUnit>) => {
     console.log('Updating product:', id, updates);

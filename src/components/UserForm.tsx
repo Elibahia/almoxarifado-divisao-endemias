@@ -62,10 +62,13 @@ export function UserForm({ onSubmit }: UserFormProps) {
           Novo Usuário
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md" aria-describedby="user-form-description">
         <DialogHeader>
           <DialogTitle>Novo Usuário</DialogTitle>
         </DialogHeader>
+        <div id="user-form-description" className="sr-only">
+          Formulário para criar um novo usuário no sistema
+        </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <Label htmlFor="email">Email</Label>

@@ -193,4 +193,37 @@
   .dark ::-webkit-scrollbar-thumb:hover {
     background: hsl(220 20% 25%);
   }
+
+  /* Mobile-specific improvements */
+  @media (max-width: 768px) {
+    /* Improve touch targets */
+    .touch-target {
+      min-height: 44px;
+      min-width: 44px;
+    }
+    
+    /* Better spacing for mobile */
+    .mobile-spacing {
+      padding: 1rem;
+    }
+    
+    /* Prevent horizontal scroll */
+    body {
+      overflow-x: hidden;
+    }
+    
+    /* Better text sizing for mobile */
+    .mobile-text {
+      font-size: 0.875rem;
+      line-height: 1.25rem;
+    }
+  }
+
+  /* Tablet-specific improvements */
+  @media (min-width: 768px) and (max-width: 1024px) {
+    /* Optimize for tablet layouts */
+    .tablet-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
 }

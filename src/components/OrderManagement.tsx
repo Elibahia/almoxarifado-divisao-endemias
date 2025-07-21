@@ -66,25 +66,25 @@ export function OrderManagement() {
   }
 
   return (
-    <div className="container mx-auto py-6 px-4 max-w-7xl">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-foreground mb-2">
+    <div className="container mx-auto py-4 md:py-6 px-4 max-w-7xl">
+      <div className="mb-4 md:mb-6">
+        <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-2">
           Gerenciamento de Pedidos
         </h1>
-        <p className="text-muted-foreground">
+        <p className="text-sm md:text-base text-muted-foreground">
           Visualize e gerencie pedidos por subdistrito
         </p>
       </div>
 
       {/* Filtros */}
-      <div className="mb-6">
+      <div className="mb-4 md:mb-6">
         <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
           <div className="flex items-center gap-2">
             <MapPin className="h-4 w-4" />
-            <span className="font-medium">Filtrar por subdistrito:</span>
+            <span className="font-medium text-sm md:text-base">Filtrar por subdistrito:</span>
           </div>
           <Select value={selectedSubdistrict} onValueChange={setSelectedSubdistrict}>
-            <SelectTrigger className="w-48">
+            <SelectTrigger className="w-full sm:w-48">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -100,7 +100,7 @@ export function OrderManagement() {
       </div>
 
       {/* Cards de resumo */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mb-4 md:mb-6">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
@@ -171,7 +171,8 @@ export function OrderManagement() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border">
+          {/* Desktop Table */}
+          <div className="hidden md:block rounded-md border">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -226,13 +227,16 @@ export function OrderManagement() {
                                 Ver Detalhes
                               </Button>
                             </DialogTrigger>
-                            <DialogContent className="max-w-2xl">
+                            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" aria-describedby="order-details-description">
                               <DialogHeader>
                                 <DialogTitle>Detalhes do Pedido</DialogTitle>
                               </DialogHeader>
+                              <div id="order-details-description" className="sr-only">
+                                Visualização detalhada das informações do pedido selecionado
+                              </div>
                               {selectedOrder && (
                                 <div className="space-y-4">
-                                  <div className="grid grid-cols-2 gap-4">
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
                                       <label className="font-semibold">Solicitante:</label>
                                       <p>{selectedOrder.requesterName}</p>
@@ -255,24 +259,26 @@ export function OrderManagement() {
 
                                   <div>
                                     <h4 className="font-semibold mb-2">Produtos Solicitados:</h4>
-                                    <Table>
-                                      <TableHeader>
-                                        <TableRow>
-                                          <TableHead>Produto</TableHead>
-                                          <TableHead>Quantidade</TableHead>
-                                          <TableHead>Unidade</TableHead>
-                                        </TableRow>
-                                      </TableHeader>
-                                      <TableBody>
-                                        {selectedOrder.items.map((item) => (
-                                          <TableRow key={item.id}>
-                                            <TableCell>{item.productName}</TableCell>
-                                            <TableCell>{item.quantity}</TableCell>
-                                            <TableCell>{item.unitOfMeasure}</TableCell>
+                                    <div className="rounded-md border overflow-x-auto">
+                                      <Table>
+                                        <TableHeader>
+                                          <TableRow>
+                                            <TableHead>Produto</TableHead>
+                                            <TableHead>Quantidade</TableHead>
+                                            <TableHead>Unidade</TableHead>
                                           </TableRow>
-                                        ))}
-                                      </TableBody>
-                                    </Table>
+                                        </TableHeader>
+                                        <TableBody>
+                                          {selectedOrder.items.map((item) => (
+                                            <TableRow key={item.id}>
+                                              <TableCell>{item.productName}</TableCell>
+                                              <TableCell>{item.quantity}</TableCell>
+                                              <TableCell>{item.unitOfMeasure}</TableCell>
+                                            </TableRow>
+                                          ))}
+                                        </TableBody>
+                                      </Table>
+                                    </div>
                                   </div>
 
                                   {selectedOrder.observations && (
@@ -284,13 +290,13 @@ export function OrderManagement() {
                                     </div>
                                   )}
 
-                                  <div className="flex gap-2 pt-4">
+                                  <div className="flex flex-col sm:flex-row gap-2 pt-4">
                                     {selectedOrder.status === 'pending' && (
                                       <>
                                         <Button
                                           onClick={() => handleStatusUpdate(selectedOrder.id, 'approved')}
                                           disabled={updateOrderStatus.isPending}
-                                          className="bg-blue-600 hover:bg-blue-700"
+                                          className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto"
                                         >
                                           <CheckCircle className="h-4 w-4 mr-2" />
                                           Aprovar
@@ -299,6 +305,7 @@ export function OrderManagement() {
                                           variant="destructive"
                                           onClick={() => handleStatusUpdate(selectedOrder.id, 'cancelled')}
                                           disabled={updateOrderStatus.isPending}
+                                          className="w-full sm:w-auto"
                                         >
                                           <XCircle className="h-4 w-4 mr-2" />
                                           Cancelar
@@ -309,7 +316,7 @@ export function OrderManagement() {
                                       <Button
                                         onClick={() => handleStatusUpdate(selectedOrder.id, 'delivered')}
                                         disabled={updateOrderStatus.isPending}
-                                        className="bg-green-600 hover:bg-green-700"
+                                        className="bg-green-600 hover:bg-green-700 w-full sm:w-auto"
                                       >
                                         <Truck className="h-4 w-4 mr-2" />
                                         Marcar como Entregue
@@ -328,6 +335,177 @@ export function OrderManagement() {
               </TableBody>
             </Table>
           </div>
+
+          {/* Mobile Cards */}
+          <div className="md:hidden space-y-4">
+            {filteredOrders.map((order) => {
+              const StatusIcon = statusMap[order.status].icon;
+              return (
+                <Card key={order.id} className="p-4">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <User className="h-4 w-4 text-muted-foreground" />
+                        <h3 className="font-medium text-foreground truncate">{order.requesterName}</h3>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Calendar className="h-3 w-3" />
+                        <span>{format(order.requestDate, 'dd/MM/yyyy', { locale: ptBR })}</span>
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-end gap-2 ml-2">
+                      <Badge className={`${statusMap[order.status].color} text-white`}>
+                        <StatusIcon className="h-3 w-3 mr-1" />
+                        {statusMap[order.status].label}
+                      </Badge>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-3 text-sm mb-4">
+                    <div>
+                      <span className="text-muted-foreground">Subdistrito:</span>
+                      <div className="mt-1">
+                        <Badge variant="outline">{order.subdistrict}</Badge>
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <span className="text-muted-foreground">Produtos:</span>
+                      <div className="mt-1 text-foreground">
+                        {order.items.length} item(s)
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="pt-3 border-t">
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setSelectedOrder(order)}
+                          className="w-full"
+                        >
+                          Ver Detalhes
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" aria-describedby="order-details-mobile-description">
+                        <DialogHeader>
+                          <DialogTitle>Detalhes do Pedido</DialogTitle>
+                        </DialogHeader>
+                        <div id="order-details-mobile-description" className="sr-only">
+                          Visualização detalhada das informações do pedido selecionado em dispositivo móvel
+                        </div>
+                        {selectedOrder && (
+                          <div className="space-y-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                              <div>
+                                <label className="font-semibold">Solicitante:</label>
+                                <p>{selectedOrder.requesterName}</p>
+                              </div>
+                              <div>
+                                <label className="font-semibold">Subdistrito:</label>
+                                <p>{selectedOrder.subdistrict}</p>
+                              </div>
+                              <div>
+                                <label className="font-semibold">Data do Pedido:</label>
+                                <p>{format(selectedOrder.requestDate, 'dd/MM/yyyy', { locale: ptBR })}</p>
+                              </div>
+                              <div>
+                                <label className="font-semibold">Status:</label>
+                                <Badge className={`${statusMap[selectedOrder.status].color} text-white`}>
+                                  {statusMap[selectedOrder.status].label}
+                                </Badge>
+                              </div>
+                            </div>
+
+                            <div>
+                              <h4 className="font-semibold mb-2">Produtos Solicitados:</h4>
+                              <div className="rounded-md border overflow-x-auto">
+                                <Table>
+                                  <TableHeader>
+                                    <TableRow>
+                                      <TableHead>Produto</TableHead>
+                                      <TableHead>Quantidade</TableHead>
+                                      <TableHead>Unidade</TableHead>
+                                    </TableRow>
+                                  </TableHeader>
+                                  <TableBody>
+                                    {selectedOrder.items.map((item) => (
+                                      <TableRow key={item.id}>
+                                        <TableCell>{item.productName}</TableCell>
+                                        <TableCell>{item.quantity}</TableCell>
+                                        <TableCell>{item.unitOfMeasure}</TableCell>
+                                      </TableRow>
+                                    ))}
+                                  </TableBody>
+                                </Table>
+                              </div>
+                            </div>
+
+                            {selectedOrder.observations && (
+                              <div>
+                                <label className="font-semibold">Observações:</label>
+                                <p className="text-sm text-muted-foreground mt-1">
+                                  {selectedOrder.observations}
+                                </p>
+                              </div>
+                            )}
+
+                            <div className="flex flex-col sm:flex-row gap-2 pt-4">
+                              {selectedOrder.status === 'pending' && (
+                                <>
+                                  <Button
+                                    onClick={() => handleStatusUpdate(selectedOrder.id, 'approved')}
+                                    disabled={updateOrderStatus.isPending}
+                                    className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto"
+                                  >
+                                    <CheckCircle className="h-4 w-4 mr-2" />
+                                    Aprovar
+                                  </Button>
+                                  <Button
+                                    variant="destructive"
+                                    onClick={() => handleStatusUpdate(selectedOrder.id, 'cancelled')}
+                                    disabled={updateOrderStatus.isPending}
+                                    className="w-full sm:w-auto"
+                                  >
+                                    <XCircle className="h-4 w-4 mr-2" />
+                                    Cancelar
+                                  </Button>
+                                </>
+                              )}
+                              {selectedOrder.status === 'approved' && (
+                                <Button
+                                  onClick={() => handleStatusUpdate(selectedOrder.id, 'delivered')}
+                                  disabled={updateOrderStatus.isPending}
+                                  className="bg-green-600 hover:bg-green-700 w-full sm:w-auto"
+                                >
+                                  <Truck className="h-4 w-4 mr-2" />
+                                  Marcar como Entregue
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+
+          {filteredOrders.length === 0 && (
+            <div className="text-center py-8">
+              <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-foreground mb-2">
+                Nenhum pedido encontrado
+              </h3>
+              <p className="text-muted-foreground">
+                Não há pedidos para exibir com os filtros selecionados.
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

@@ -158,10 +158,13 @@ export default function MovementForm({ isOpen, onClose, onSuccess }: MovementFor
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md" aria-describedby="movement-form-description">
         <DialogHeader>
           <DialogTitle>Nova Movimentação</DialogTitle>
         </DialogHeader>
+        <div id="movement-form-description" className="sr-only">
+          Formulário para registrar uma nova movimentação de estoque
+        </div>
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">

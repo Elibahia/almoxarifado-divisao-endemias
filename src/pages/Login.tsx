@@ -78,7 +78,7 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-medical p-4">
-      <div className="w-full max-w-md">
+      <div className="w-full max-w-md mx-auto">
         {/* Logo/Header */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-white rounded-full shadow-medical mb-4">
@@ -87,10 +87,10 @@ export default function Login() {
               <Heart className="h-6 w-6 text-success" />
             </div>
           </div>
-          <h1 className="text-3xl font-bold text-white mb-2">
+          <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">
             Almoxarifado Saúde
           </h1>
-          <p className="text-white/80">
+          <p className="text-sm md:text-base text-white/80">
             Sistema de Gestão de Estoque
           </p>
         </div>
@@ -189,8 +189,8 @@ export default function Login() {
         </Card>
 
         {/* Footer */}
-        <div className="text-center mt-8 text-white/60 text-sm">
-          <p className="mt-1">Copyright © 2025. Desenvolvido por Elissandro Oliveira. Todos os direitos reservados.</p>
+        <div className="text-center mt-8 text-white/60 text-xs md:text-sm">
+          <p className="mt-1 px-4">Copyright © 2025. Desenvolvido por Elissandro Oliveira. Todos os direitos reservados.</p>
         </div>
       </div>
     </div>

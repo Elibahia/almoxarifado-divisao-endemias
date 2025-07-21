@@ -119,10 +119,10 @@ export function OrderRequestForm() {
   const today = format(new Date(), 'dd/MM/yyyy');
 
   return (
-    <div className="container mx-auto py-6 px-4 max-w-6xl">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-foreground mb-2">Solicitação de Pedido</h1>
-        <p className="text-muted-foreground">
+    <div className="container mx-auto py-4 md:py-6 px-4 max-w-6xl">
+      <div className="mb-4 md:mb-6">
+        <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-2">Solicitação de Pedido</h1>
+        <p className="text-sm md:text-base text-muted-foreground">
           Preencha o formulário abaixo para solicitar produtos do almoxarifado
         </p>
       </div>
@@ -137,7 +137,7 @@ export function OrderRequestForm() {
                 Informações Gerais
               </CardTitle>
             </CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <CardContent className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <FormField
                 control={form.control}
                 name="requesterName"
@@ -205,7 +205,8 @@ export function OrderRequestForm() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="rounded-md border">
+              {/* Desktop Table */}
+              <div className="hidden md:block rounded-md border">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -277,6 +278,85 @@ export function OrderRequestForm() {
                 </Table>
               </div>
 
+              {/* Mobile Cards */}
+              <div className="md:hidden space-y-4">
+                {orderProducts.map((product, index) => (
+                  <Card key={product.id} className="p-4 border-2 border-dashed border-muted">
+                    <div className="flex items-center justify-between mb-4">
+                      <h4 className="font-medium text-foreground">Produto #{index + 1}</h4>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => removeProductRow(product.id)}
+                        disabled={orderProducts.length === 1}
+                        className="h-8 w-8 p-0"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-2 block">
+                          Produto *
+                        </label>
+                        <Select
+                          onValueChange={(value) => updateProduct(product.id, 'productId', value)}
+                          value={product.productId}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione um produto" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {products.map((prod) => (
+                              <SelectItem key={prod.id} value={prod.id}>
+                                {prod.name} (Lote: {prod.batch})
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-sm font-medium text-foreground mb-2 block">
+                            Quantidade *
+                          </label>
+                          <Input
+                            type="number"
+                            min="1"
+                            value={product.quantity}
+                            onChange={(e) => updateProduct(product.id, 'quantity', parseInt(e.target.value) || 1)}
+                          />
+                        </div>
+                        
+                        <div>
+                          <label className="text-sm font-medium text-foreground mb-2 block">
+                            Unidade
+                          </label>
+                          <Select
+                            onValueChange={(value) => updateProduct(product.id, 'unitOfMeasure', value)}
+                            value={product.unitOfMeasure}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {UNIT_OF_MEASURE_OPTIONS.map((unit) => (
+                                <SelectItem key={unit.value} value={unit.value}>
+                                  {unit.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+
               <Button
                 type="button"
                 variant="outline"
@@ -324,22 +404,24 @@ export function OrderRequestForm() {
           </Card>
 
           {/* Botão de Envio */}
-          <div className="flex justify-end">
+          <div className="flex justify-center sm:justify-end">
             <Button
               type="submit"
               size="lg"
               disabled={createOrderRequest.isPending}
-              className="px-8"
+              className="w-full sm:w-auto px-8"
             >
               {createOrderRequest.isPending ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Enviando...
+                  <span className="hidden sm:inline">Enviando...</span>
+                  <span className="sm:hidden">Enviando...</span>
                 </>
               ) : (
                 <>
                   <Package className="h-4 w-4 mr-2" />
-                  Enviar Pedido
+                  <span className="hidden sm:inline">Enviar Pedido</span>
+                  <span className="sm:hidden">Enviar</span>
                 </>
               )}
             </Button>

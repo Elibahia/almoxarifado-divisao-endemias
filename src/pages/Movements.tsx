@@ -88,85 +88,161 @@ export default function Movements() {
   };
 
   const renderMovementTable = (movementsList: typeof movements, emptyMessage: string) => (
-    <div className="rounded-md border overflow-hidden">
-      <Table>
-        <TableHeader>
-          <TableRow className="bg-muted/50">
-            <TableHead className="font-semibold">Data/Hora</TableHead>
-            <TableHead className="font-semibold">Produto</TableHead>
-            <TableHead className="font-semibold">Quantidade</TableHead>
-            <TableHead className="font-semibold">Motivo</TableHead>
-            <TableHead className="font-semibold">Responsável</TableHead>
-            <TableHead className="font-semibold">Detalhes</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {movementsList.map((movement) => (
-            <TableRow key={movement.id} className="hover:bg-muted/30 transition-colors">
-              <TableCell>
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                  <div>
-                    <div className="font-medium text-sm">
-                      {movement.timestamp.toLocaleDateString('pt-BR')}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {movement.timestamp.toLocaleTimeString('pt-BR', { 
-                        hour: '2-digit', 
-                        minute: '2-digit' 
-                      })}
+    <>
+      {/* Desktop Table */}
+      <div className="hidden md:block rounded-md border overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-muted/50">
+              <TableHead className="font-semibold">Data/Hora</TableHead>
+              <TableHead className="font-semibold">Produto</TableHead>
+              <TableHead className="font-semibold">Quantidade</TableHead>
+              <TableHead className="font-semibold">Motivo</TableHead>
+              <TableHead className="font-semibold">Responsável</TableHead>
+              <TableHead className="font-semibold">Detalhes</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {movementsList.map((movement) => (
+              <TableRow key={movement.id} className="hover:bg-muted/30 transition-colors">
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                    <div>
+                      <div className="font-medium text-sm">
+                        {movement.timestamp.toLocaleDateString('pt-BR')}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {movement.timestamp.toLocaleTimeString('pt-BR', { 
+                          hour: '2-digit', 
+                          minute: '2-digit' 
+                        })}
+                      </div>
                     </div>
                   </div>
-                </div>
-              </TableCell>
-              <TableCell>
+                </TableCell>
+                <TableCell>
+                  <div>
+                    <div className="font-medium">{movement.productName}</div>
+                    {movement.batch && (
+                      <div className="text-xs text-muted-foreground font-mono">
+                        Lote: {movement.batch}
+                      </div>
+                    )}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="text-center">
+                    <span className="font-medium text-foreground">
+                      {movement.quantity}
+                    </span>
+                    <div className="text-xs text-muted-foreground">unidades</div>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="max-w-xs">
+                    <div className="font-medium text-sm">{movement.reason}</div>
+                    {movement.invoiceNumber && (
+                      <div className="text-xs text-muted-foreground">
+                        {movement.invoiceNumber}
+                      </div>
+                    )}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    <User className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm">{movement.responsibleUser}</span>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  {movement.notes && (
+                    <div className="flex items-center gap-1">
+                      <FileText className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-xs text-muted-foreground max-w-xs truncate">
+                        {movement.notes}
+                      </span>
+                    </div>
+                  )}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+
+      {/* Mobile Cards */}
+      <div className="md:hidden space-y-4">
+        {movementsList.map((movement) => (
+          <Card key={movement.id} className="p-4">
+            <div className="flex items-start justify-between mb-3">
+              <div className="flex items-center gap-2">
+                {getMovementIcon(movement.type)}
                 <div>
-                  <div className="font-medium">{movement.productName}</div>
-                  {movement.batch && (
-                    <div className="text-xs text-muted-foreground font-mono">
-                      Lote: {movement.batch}
-                    </div>
-                  )}
+                  <h3 className="font-medium text-foreground">{movement.productName}</h3>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Calendar className="h-3 w-3" />
+                    <span>{movement.timestamp.toLocaleDateString('pt-BR')}</span>
+                    <span>{movement.timestamp.toLocaleTimeString('pt-BR', { 
+                      hour: '2-digit', 
+                      minute: '2-digit' 
+                    })}</span>
+                  </div>
                 </div>
-              </TableCell>
-              <TableCell>
-                <div className="text-center">
-                  <span className="font-medium text-foreground">
-                    {movement.quantity}
-                  </span>
-                  <div className="text-xs text-muted-foreground">unidades</div>
-                </div>
-              </TableCell>
-              <TableCell>
-                <div className="max-w-xs">
-                  <div className="font-medium text-sm">{movement.reason}</div>
-                  {movement.invoiceNumber && (
-                    <div className="text-xs text-muted-foreground">
-                      {movement.invoiceNumber}
-                    </div>
-                  )}
-                </div>
-              </TableCell>
-              <TableCell>
-                <div className="flex items-center gap-2">
-                  <User className="h-4 w-4 text-muted-foreground" />
+              </div>
+              <div className="text-right">
+                {getMovementBadge(movement.type)}
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div>
+                <span className="text-muted-foreground">Quantidade:</span>
+                <div className="font-medium mt-1">{movement.quantity} unidades</div>
+              </div>
+              
+              <div>
+                <span className="text-muted-foreground">Responsável:</span>
+                <div className="flex items-center gap-1 mt-1">
+                  <User className="h-3 w-3 text-muted-foreground" />
                   <span className="text-sm">{movement.responsibleUser}</span>
                 </div>
-              </TableCell>
-              <TableCell>
-                {movement.notes && (
-                  <div className="flex items-center gap-1">
-                    <FileText className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-xs text-muted-foreground max-w-xs truncate">
+              </div>
+              
+              {movement.batch && (
+                <div className="col-span-2">
+                  <span className="text-muted-foreground">Lote:</span>
+                  <div className="font-mono text-sm mt-1">{movement.batch}</div>
+                </div>
+              )}
+            </div>
+            
+            <div className="mt-3 pt-3 border-t">
+              <div className="mb-2">
+                <span className="text-muted-foreground text-sm">Motivo:</span>
+                <div className="font-medium text-sm mt-1">{movement.reason}</div>
+                {movement.invoiceNumber && (
+                  <div className="text-xs text-muted-foreground mt-1">
+                    {movement.invoiceNumber}
+                  </div>
+                )}
+              </div>
+              
+              {movement.notes && (
+                <div>
+                  <span className="text-muted-foreground text-sm">Observações:</span>
+                  <div className="flex items-start gap-1 mt-1">
+                    <FileText className="h-3 w-3 text-muted-foreground mt-0.5 flex-shrink-0" />
+                    <span className="text-xs text-muted-foreground">
                       {movement.notes}
                     </span>
                   </div>
-                )}
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+                </div>
+              )}
+            </div>
+          </Card>
+        ))}
+      </div>
 
       {movementsList.length === 0 && (
         <div className="text-center py-8">
@@ -179,7 +255,7 @@ export default function Movements() {
           </p>
         </div>
       )}
-    </div>
+    </>
   );
 
   if (isLoading) {
@@ -198,25 +274,26 @@ export default function Movements() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Movimentações</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl md:text-3xl font-bold text-foreground">Movimentações</h1>
+          <p className="text-sm md:text-base text-muted-foreground">
             Histórico de entradas, saídas e ajustes de estoque
           </p>
         </div>
         <Button 
           variant="medical" 
-          className="gap-2"
+          className="gap-2 w-full sm:w-auto"
           onClick={() => setIsFormOpen(true)}
         >
           <Plus className="h-4 w-4" />
-          Nova Movimentação
+          <span className="sm:hidden">Nova</span>
+          <span className="hidden sm:inline">Nova Movimentação</span>
         </Button>
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="hover:shadow-card transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -280,7 +357,8 @@ export default function Movements() {
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="all" className="w-full">
-            <TabsList className="grid w-full grid-cols-5">
+            {/* Desktop Tabs */}
+            <TabsList className="hidden md:grid w-full grid-cols-5">
               <TabsTrigger value="all">Todas</TabsTrigger>
               <TabsTrigger value="entries" className="text-success">
                 Entradas ({entries.length})
@@ -295,6 +373,27 @@ export default function Movements() {
                 Transferências ({transfers.length})
               </TabsTrigger>
             </TabsList>
+            
+            {/* Mobile Tabs */}
+            <div className="md:hidden">
+              <TabsList className="grid w-full grid-cols-3 mb-2">
+                <TabsTrigger value="all" className="text-xs">Todas</TabsTrigger>
+                <TabsTrigger value="entries" className="text-success text-xs">
+                  Entradas
+                </TabsTrigger>
+                <TabsTrigger value="exits" className="text-error text-xs">
+                  Saídas
+                </TabsTrigger>
+              </TabsList>
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="adjustments" className="text-warning text-xs">
+                  Ajustes
+                </TabsTrigger>
+                <TabsTrigger value="transfers" className="text-primary text-xs">
+                  Transferências
+                </TabsTrigger>
+              </TabsList>
+            </div>
 
             <TabsContent value="all" className="mt-6">
               {renderMovementTable(movements, "Nenhuma movimentação encontrada")}
