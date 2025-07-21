@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Switch } from "@/components/ui/switch";
-import { Users, Shield, UserCog, Trash2, Eye } from "lucide-react";
+import { Users, Shield, UserCog, Trash2, Eye, UserX } from "lucide-react";
 import { UserForm } from "@/components/UserForm";
 import { useUsers } from "@/hooks/useUsers";
 import { useAuth } from "@/hooks/useAuth";
@@ -22,7 +22,7 @@ export default function UsersPage() {
   };
 
   const handleDeleteUser = async (userId: string) => {
-    if (confirm('Tem certeza que deseja remover este usuário?')) {
+    if (confirm('Tem certeza que deseja desativar este usuário?')) {
       await deleteUser(userId);
     }
   };
@@ -188,8 +188,9 @@ export default function UsersPage() {
                           size="sm"
                           onClick={() => handleDeleteUser(user.id)}
                           disabled={user.id === userProfile?.id} // Can't delete own account
+                          title="Desativar usuário"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <UserX className="h-4 w-4" />
                         </Button>
                       </TableCell>
                     </TableRow>

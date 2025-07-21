@@ -19,7 +19,7 @@ export interface OrderFormData {
   requesterName: string;
   subdistrict: string;
   products: OrderProduct[];
-  observations: string;
+  observations?: string;
 }
 
 export const SUBDISTRICTS = [

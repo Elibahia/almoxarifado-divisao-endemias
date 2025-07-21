@@ -103,7 +103,10 @@ export function UserForm({ onSubmit }: UserFormProps) {
           
           <div>
             <Label htmlFor="role">Função</Label>
-            <Select onValueChange={(value) => setFormData(prev => ({ ...prev, role: value as 'admin' | 'gestor_almoxarifado' | 'supervisor_geral' }))}>
+            <Select 
+              value={formData.role}
+              onValueChange={(value) => setFormData(prev => ({ ...prev, role: value as 'admin' | 'gestor_almoxarifado' | 'supervisor_geral' }))}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Selecione a função" />
               </SelectTrigger>

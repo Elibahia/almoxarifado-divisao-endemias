@@ -41,41 +41,58 @@ export function useUsers() {
 
   const createUser = async (email: string, name: string, role: 'admin' | 'gestor_almoxarifado' | 'supervisor_geral', password: string) => {
     try {
-      // Create auth user with provided password
-      const { data, error: authError } = await supabase.auth.admin.createUser({
-        email,
-        password,
-        email_confirm: true,
-        user_metadata: { name }
+      console.log('Iniciando criação de usuário:', { email, name, role });
+      
+      // Use the safe admin function to create user
+      console.log('Chamando admin_create_user_safe...');
+      const { data, error } = await supabase.rpc('admin_create_user_safe', {
+        user_email: email,
+        user_name: name,
+        user_role: role,
+        user_password: password
       });
 
-      if (authError) throw authError;
+      console.log('Resposta do admin_create_user_safe:', { data, error });
 
-      // The trigger will automatically create the profile, but we need to update the role
-      if (data.user) {
-        const { error: updateError } = await supabase
-          .from('user_profiles')
-          .update({ role, name })
-          .eq('id', data.user.id);
+      if (error) {
+        console.error('Erro ao chamar admin_create_user_safe:', error);
+        throw error;
+      }
 
-        if (updateError) throw updateError;
+      const result = data as { success: boolean; error?: string; user_id?: string };
+      console.log('Resultado processado:', result);
+
+      if (!result.success) {
+        throw new Error(result.error || 'Erro desconhecido');
       }
 
       await fetchUsers();
       
       toast({
         title: "Sucesso",
-        description: "Usuário criado com sucesso",
+        description: "Usuário criado com sucesso!",
       });
       
       return { success: true };
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating user:', error);
+      
+      let errorMessage = 'Erro ao criar usuário. Tente novamente.';
+      
+      if (error.message?.includes('Email já cadastrado')) {
+        errorMessage = 'Este email já está cadastrado no sistema.';
+      } else if (error.message?.includes('Acesso negado')) {
+        errorMessage = 'Você não tem permissão para criar usuários.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
         title: "Erro",
-        description: "Erro ao criar usuário",
+        description: errorMessage,
         variant: "destructive",
       });
+      
       return { success: false, error };
     }
   };
@@ -116,23 +133,27 @@ export function useUsers() {
 
   const deleteUser = async (id: string) => {
     try {
-      // Delete from auth.users will cascade to user_profiles
-      const { error } = await supabase.auth.admin.deleteUser(id);
+      // Since we can't delete auth users from client side, we'll just deactivate the user profile
+      // In a production environment, you'd want to implement this via a server-side function
+      const { error } = await supabase
+        .from('user_profiles')
+        .update({ is_active: false })
+        .eq('id', id);
 
       if (error) throw error;
 
       await fetchUsers();
       toast({
         title: "Sucesso",
-        description: "Usuário removido com sucesso",
+        description: "Usuário desativado com sucesso",
       });
       
       return { success: true };
     } catch (error) {
-      console.error('Error deleting user:', error);
+      console.error('Error deactivating user:', error);
       toast({
         title: "Erro",
-        description: "Erro ao remover usuário",
+        description: "Erro ao desativar usuário",
         variant: "destructive",
       });
       return { success: false, error };

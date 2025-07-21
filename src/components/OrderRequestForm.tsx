@@ -14,6 +14,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useProducts } from '@/hooks/useProducts';
 import { useOrderRequests } from '@/hooks/useOrderRequests';
+import { useSupervisor } from '@/contexts/SupervisorContext';
+import { useAuth } from '@/hooks/useAuth';
 import { OrderFormData, OrderProduct, SUBDISTRICTS } from '@/types/orderTypes';
 import { UNIT_OF_MEASURE_OPTIONS } from '@/types/unitTypes';
 
@@ -33,6 +35,8 @@ const orderSchema = z.object({
 export function OrderRequestForm() {
   const { products } = useProducts();
   const { createOrderRequest } = useOrderRequests();
+  const { selectedSubdistrict, setSelectedSubdistrict } = useSupervisor();
+  const { userProfile } = useAuth();
   const [orderProducts, setOrderProducts] = useState<OrderProduct[]>([
     { id: '1', productId: '', productName: '', quantity: 1, unitOfMeasure: 'unid.' }
   ]);
@@ -41,9 +45,9 @@ export function OrderRequestForm() {
     resolver: zodResolver(orderSchema),
     defaultValues: {
       requesterName: '',
-      subdistrict: '',
+      subdistrict: selectedSubdistrict || '',
       products: orderProducts,
-      observations: '',
+      observations: undefined,
     },
   });
 
@@ -97,8 +101,15 @@ export function OrderRequestForm() {
         observations: data.observations,
       });
 
-      // Reset form
-      form.reset();
+      // Reset form but keep subdistrict for supervisors
+      const resetValues = {
+        requesterName: '',
+        subdistrict: userProfile?.role === 'supervisor_geral' ? data.subdistrict : '',
+        products: [{ id: '1', productId: '', productName: '', quantity: 1, unitOfMeasure: 'unid.' }],
+        observations: undefined,
+      };
+      
+      form.reset(resetValues);
       setOrderProducts([{ id: '1', productId: '', productName: '', quantity: 1, unitOfMeasure: 'unid.' }]);
     } catch (error) {
       console.error('Error submitting order:', error);
@@ -147,7 +158,16 @@ export function OrderRequestForm() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Subdistrito *</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <Select 
+                      onValueChange={(value) => {
+                        field.onChange(value);
+                        // Se for supervisor, salva o subdistrito selecionado no contexto
+                        if (userProfile?.role === 'supervisor_geral') {
+                          setSelectedSubdistrict(value);
+                        }
+                      }} 
+                      value={field.value}
+                    >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Selecione o subdistrito" />

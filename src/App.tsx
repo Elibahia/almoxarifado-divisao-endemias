@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "@/hooks/useTheme";
+import { SupervisorProvider } from "@/contexts/SupervisorContext";
 import { Layout } from "@/components/Layout";
 import { useAuth } from "@/hooks/useAuth";
 import Index from "./pages/Index";
@@ -30,8 +31,8 @@ const queryClient = new QueryClient({
   },
 });
 
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
+function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode, allowedRoles?: string[] }) {
+  const { user, userProfile, loading } = useAuth();
   
   if (loading) {
     return (
@@ -47,6 +48,12 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   if (!user) {
     console.log('No user found, redirecting to login');
     return <Navigate to="/login" replace />;
+  }
+
+  // Check role-based access if allowedRoles is specified
+  if (allowedRoles && userProfile && !allowedRoles.includes(userProfile.role)) {
+    console.log('User role not allowed for this route, redirecting to dashboard');
+    return <Navigate to="/" replace />;
   }
   
   return <>{children}</>;
@@ -78,10 +85,11 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="system" storageKey="almoxarifado-theme">
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
+        <SupervisorProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
             <Routes>
               <Route path="/login" element={
                 <AuthRoute>
@@ -94,56 +102,56 @@ const App = () => {
                 </ProtectedRoute>
               } />
               <Route path="/products" element={
-                <ProtectedRoute>
+                <ProtectedRoute allowedRoles={['admin', 'gestor_almoxarifado']}>
                   <Layout>
                     <Products />
                   </Layout>
                 </ProtectedRoute>
               } />
               <Route path="/movements" element={
-                <ProtectedRoute>
+                <ProtectedRoute allowedRoles={['admin', 'gestor_almoxarifado']}>
                   <Layout>
                     <Movements />
                   </Layout>
                 </ProtectedRoute>
               } />
               <Route path="/order-requests" element={
-                <ProtectedRoute>
+                <ProtectedRoute allowedRoles={['admin', 'gestor_almoxarifado', 'supervisor_geral']}>
                   <Layout>
                     <OrderRequests />
                   </Layout>
                 </ProtectedRoute>
               } />
               <Route path="/order-management" element={
-                <ProtectedRoute>
+                <ProtectedRoute allowedRoles={['admin', 'gestor_almoxarifado', 'supervisor_geral']}>
                   <Layout>
                     <OrderManagement />
                   </Layout>
                 </ProtectedRoute>
               } />
               <Route path="/reports" element={
-                <ProtectedRoute>
+                <ProtectedRoute allowedRoles={['admin', 'gestor_almoxarifado']}>
                   <Layout>
                     <Reports />
                   </Layout>
                 </ProtectedRoute>
               } />
               <Route path="/alerts" element={
-                <ProtectedRoute>
+                <ProtectedRoute allowedRoles={['admin', 'gestor_almoxarifado']}>
                   <Layout>
                     <Alerts />
                   </Layout>
                 </ProtectedRoute>
               } />
               <Route path="/users" element={
-                <ProtectedRoute>
+                <ProtectedRoute allowedRoles={['admin']}>
                   <Layout>
                     <Users />
                   </Layout>
                 </ProtectedRoute>
               } />
               <Route path="/settings" element={
-                <ProtectedRoute>
+                <ProtectedRoute allowedRoles={['admin', 'gestor_almoxarifado']}>
                   <Layout>
                     <Settings />
                   </Layout>
@@ -153,6 +161,7 @@ const App = () => {
             </Routes>
           </BrowserRouter>
         </TooltipProvider>
+      </SupervisorProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );

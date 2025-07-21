@@ -12,6 +12,7 @@ import {
   FileText,
   Truck,
   XCircle,
+  Filter,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -20,6 +21,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Button } from '@/components/ui/button';
 import { useOrderRequests, OrderRequestWithItems } from '@/hooks/useOrderRequests';
 import { useAuth } from '@/hooks/useAuth';
+import { useSupervisor } from '@/contexts/SupervisorContext';
 
 const statusMap = {
   pending: { label: 'Pendente', color: 'bg-yellow-500', icon: Clock },
@@ -31,12 +33,20 @@ const statusMap = {
 export function SupervisorOrderManagement() {
   const { orderRequests, isLoading } = useOrderRequests();
   const { userProfile } = useAuth();
+  const { selectedSubdistrict, setSelectedSubdistrict } = useSupervisor();
   const [selectedOrder, setSelectedOrder] = useState<OrderRequestWithItems | null>(null);
 
   // Filter orders created by the current supervisor only
-  const userOrders = orderRequests.filter(order => 
+  let userOrders = orderRequests.filter(order => 
     order.createdBy === userProfile?.id
   );
+
+  // If a subdistrict is selected, filter by it as well
+  if (selectedSubdistrict) {
+    userOrders = userOrders.filter(order => 
+      order.subdistrict === selectedSubdistrict
+    );
+  }
 
   const getStatusCounts = () => {
     const counts = { pending: 0, approved: 0, delivered: 0, cancelled: 0, total: 0 };
@@ -60,12 +70,31 @@ export function SupervisorOrderManagement() {
   return (
     <div className="container mx-auto py-6 px-4 max-w-7xl">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-foreground mb-2">
-          Meus Pedidos
-        </h1>
-        <p className="text-muted-foreground">
-          Visualize o status dos seus pedidos solicitados
-        </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground mb-2">
+              Meus Pedidos
+            </h1>
+            <p className="text-muted-foreground">
+              Visualize o status dos seus pedidos solicitados
+            </p>
+          </div>
+          {selectedSubdistrict && (
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary" className="flex items-center gap-2">
+                <Filter className="h-3 w-3" />
+                Filtrado por: {selectedSubdistrict}
+              </Badge>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setSelectedSubdistrict(null)}
+              >
+                Limpar Filtro
+              </Button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Cards de resumo */}
@@ -153,112 +182,135 @@ export function SupervisorOrderManagement() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {userOrders.map((order) => {
-                  const StatusIcon = statusMap[order.status].icon;
-                  return (
-                    <TableRow key={order.id}>
-                      <TableCell className="font-medium">
-                        <div className="flex items-center gap-2">
-                          <User className="h-4 w-4 text-muted-foreground" />
-                          {order.requesterName}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{order.subdistrict}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Calendar className="h-4 w-4 text-muted-foreground" />
-                          {format(order.requestDate, 'dd/MM/yyyy', { locale: ptBR })}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={`${statusMap[order.status].color} text-white`}>
-                          <StatusIcon className="h-3 w-3 mr-1" />
-                          {statusMap[order.status].label}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-sm text-muted-foreground">
-                          {order.items.length} item(s)
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => setSelectedOrder(order)}
-                            >
-                              Ver Detalhes
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent className="max-w-2xl">
-                            <DialogHeader>
-                              <DialogTitle>Detalhes do Pedido</DialogTitle>
-                            </DialogHeader>
-                            {selectedOrder && (
-                              <div className="space-y-4">
-                                <div className="grid grid-cols-2 gap-4">
-                                  <div>
-                                    <label className="font-semibold">Solicitante:</label>
-                                    <p>{selectedOrder.requesterName}</p>
+                {userOrders.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-8">
+                      <div className="flex flex-col items-center gap-2">
+                        <Package className="h-8 w-8 text-muted-foreground" />
+                        <p className="text-muted-foreground">
+                          {selectedSubdistrict 
+                            ? `Nenhum pedido encontrado para o subdistrito ${selectedSubdistrict}`
+                            : 'Nenhum pedido encontrado'
+                          }
+                        </p>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => window.location.href = '/order-requests'}
+                        >
+                          Criar Primeiro Pedido
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  userOrders.map((order) => {
+                    const StatusIcon = statusMap[order.status].icon;
+                    return (
+                      <TableRow key={order.id}>
+                        <TableCell className="font-medium">
+                          <div className="flex items-center gap-2">
+                            <User className="h-4 w-4 text-muted-foreground" />
+                            {order.requesterName}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{order.subdistrict}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Calendar className="h-4 w-4 text-muted-foreground" />
+                            {format(order.requestDate, 'dd/MM/yyyy', { locale: ptBR })}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={`${statusMap[order.status].color} text-white`}>
+                            <StatusIcon className="h-3 w-3 mr-1" />
+                            {statusMap[order.status].label}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm text-muted-foreground">
+                            {order.items.length} item(s)
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setSelectedOrder(order)}
+                              >
+                                Ver Detalhes
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-2xl">
+                              <DialogHeader>
+                                <DialogTitle>Detalhes do Pedido</DialogTitle>
+                              </DialogHeader>
+                              {selectedOrder && (
+                                <div className="space-y-4">
+                                  <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                      <label className="font-semibold">Solicitante:</label>
+                                      <p>{selectedOrder.requesterName}</p>
+                                    </div>
+                                    <div>
+                                      <label className="font-semibold">Subdistrito:</label>
+                                      <p>{selectedOrder.subdistrict}</p>
+                                    </div>
+                                    <div>
+                                      <label className="font-semibold">Data do Pedido:</label>
+                                      <p>{format(selectedOrder.requestDate, 'dd/MM/yyyy', { locale: ptBR })}</p>
+                                    </div>
+                                    <div>
+                                      <label className="font-semibold">Status:</label>
+                                      <Badge className={`${statusMap[selectedOrder.status].color} text-white`}>
+                                        {statusMap[selectedOrder.status].label}
+                                      </Badge>
+                                    </div>
                                   </div>
-                                  <div>
-                                    <label className="font-semibold">Subdistrito:</label>
-                                    <p>{selectedOrder.subdistrict}</p>
-                                  </div>
-                                  <div>
-                                    <label className="font-semibold">Data do Pedido:</label>
-                                    <p>{format(selectedOrder.requestDate, 'dd/MM/yyyy', { locale: ptBR })}</p>
-                                  </div>
-                                  <div>
-                                    <label className="font-semibold">Status:</label>
-                                    <Badge className={`${statusMap[selectedOrder.status].color} text-white`}>
-                                      {statusMap[selectedOrder.status].label}
-                                    </Badge>
-                                  </div>
-                                </div>
 
-                                <div>
-                                  <h4 className="font-semibold mb-2">Produtos Solicitados:</h4>
-                                  <Table>
-                                    <TableHeader>
-                                      <TableRow>
-                                        <TableHead>Produto</TableHead>
-                                        <TableHead>Quantidade</TableHead>
-                                        <TableHead>Unidade</TableHead>
-                                      </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                      {selectedOrder.items.map((item) => (
-                                        <TableRow key={item.id}>
-                                          <TableCell>{item.productName}</TableCell>
-                                          <TableCell>{item.quantity}</TableCell>
-                                          <TableCell>{item.unitOfMeasure}</TableCell>
+                                  <div>
+                                    <h4 className="font-semibold mb-2">Produtos Solicitados:</h4>
+                                    <Table>
+                                      <TableHeader>
+                                        <TableRow>
+                                          <TableHead>Produto</TableHead>
+                                          <TableHead>Quantidade</TableHead>
+                                          <TableHead>Unidade</TableHead>
                                         </TableRow>
-                                      ))}
-                                    </TableBody>
-                                  </Table>
-                                </div>
-
-                                {selectedOrder.observations && (
-                                  <div>
-                                    <label className="font-semibold">Observações:</label>
-                                    <p className="text-sm text-muted-foreground mt-1">
-                                      {selectedOrder.observations}
-                                    </p>
+                                      </TableHeader>
+                                      <TableBody>
+                                        {selectedOrder.items.map((item) => (
+                                          <TableRow key={item.id}>
+                                            <TableCell>{item.productName}</TableCell>
+                                            <TableCell>{item.quantity}</TableCell>
+                                            <TableCell>{item.unitOfMeasure}</TableCell>
+                                          </TableRow>
+                                        ))}
+                                      </TableBody>
+                                    </Table>
                                   </div>
-                                )}
-                              </div>
-                            )}
-                          </DialogContent>
-                        </Dialog>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
+
+                                  {selectedOrder.observations && (
+                                    <div>
+                                      <label className="font-semibold">Observações:</label>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {selectedOrder.observations}
+                                      </p>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </DialogContent>
+                          </Dialog>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
               </TableBody>
             </Table>
           </div>
