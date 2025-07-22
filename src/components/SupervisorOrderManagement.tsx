@@ -1,24 +1,26 @@
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
   CheckCircle,
   Clock,
   Package,
-  MapPin,
   User,
   Calendar,
-  FileText,
   Truck,
   XCircle,
   Filter,
+  Download,
+  SortAsc,
+  Plus,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { showNotificationToast } from '@/components/ui/notification-toast';
 import { useOrderRequests, OrderRequestWithItems } from '@/hooks/useOrderRequests';
 import { useAuth } from '@/hooks/useAuth';
 import { useSupervisor } from '@/contexts/SupervisorContext';
@@ -27,14 +29,60 @@ const statusMap = {
   pending: { label: 'Pendente', color: 'bg-yellow-500', icon: Clock },
   approved: { label: 'Aprovado', color: 'bg-blue-500', icon: CheckCircle },
   delivered: { label: 'Entregue', color: 'bg-green-500', icon: Truck },
+  received: { label: 'Recebido', color: 'bg-emerald-600', icon: CheckCircle },
   cancelled: { label: 'Cancelado', color: 'bg-red-500', icon: XCircle },
 } as const;
 
 export function SupervisorOrderManagement() {
-  const { orderRequests, isLoading } = useOrderRequests();
+  const { orderRequests, isLoading, updateOrderStatus } = useOrderRequests();
   const { userProfile } = useAuth();
   const { selectedSubdistrict, setSelectedSubdistrict } = useSupervisor();
   const [selectedOrder, setSelectedOrder] = useState<OrderRequestWithItems | null>(null);
+  const [sortBy, setSortBy] = useState<'date' | 'status'>('date');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  
+  const handleConfirmReceipt = async (orderId: string) => {
+    try {
+      await updateOrderStatus.mutateAsync({ orderId, status: 'received' });
+      showNotificationToast({
+        type: 'success',
+        title: 'Recebimento Confirmado!',
+        message: 'O pedido foi marcado como recebido com sucesso.',
+      });
+    } catch (error) {
+      console.error('Error confirming receipt:', error);
+      showNotificationToast({
+        type: 'error',
+        title: 'Erro ao Confirmar Recebimento',
+        message: 'Não foi possível confirmar o recebimento. Tente novamente.',
+      });
+    }
+  };
+
+  const handleExport = () => {
+    const csvContent = [
+      ['Solicitante', 'Subdistrito', 'Data', 'Status', 'Produtos', 'Observações'],
+      ...userOrders.map(order => [
+        order.requesterName,
+        order.subdistrict,
+        format(order.requestDate, 'dd/MM/yyyy', { locale: ptBR }),
+        statusMap[order.status].label,
+        order.items.map(item => `${item.productName} (${item.quantity} ${item.unitOfMeasure})`).join('; '),
+        order.observations || ''
+      ])
+    ].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `meus-pedidos-${format(new Date(), 'yyyy-MM-dd')}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   // Filter orders created by the current supervisor only
   let userOrders = orderRequests.filter(order => 
@@ -48,8 +96,28 @@ export function SupervisorOrderManagement() {
     );
   }
 
+  // Apply status filter
+  if (statusFilter !== 'all') {
+    userOrders = userOrders.filter(order => order.status === statusFilter);
+  }
+
+  // Apply sorting
+  userOrders = userOrders.sort((a, b) => {
+    if (sortBy === 'date') {
+      const dateA = new Date(a.requestDate).getTime();
+      const dateB = new Date(b.requestDate).getTime();
+      return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
+    } else if (sortBy === 'status') {
+      const statusOrder = ['pending', 'approved', 'delivered', 'received', 'cancelled'];
+      const indexA = statusOrder.indexOf(a.status);
+      const indexB = statusOrder.indexOf(b.status);
+      return sortOrder === 'asc' ? indexA - indexB : indexB - indexA;
+    }
+    return 0;
+  });
+
   const getStatusCounts = () => {
-    const counts = { pending: 0, approved: 0, delivered: 0, cancelled: 0, total: 0 };
+    const counts = { pending: 0, approved: 0, delivered: 0, received: 0, cancelled: 0, total: 0 };
     userOrders.forEach(order => {
       counts[order.status]++;
       counts.total++;
@@ -79,27 +147,68 @@ export function SupervisorOrderManagement() {
               Visualize o status dos seus pedidos solicitados
             </p>
           </div>
-          {selectedSubdistrict && (
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
-              <Badge variant="secondary" className="flex items-center gap-2">
-                <Filter className="h-3 w-3" />
-                Filtrado por: {selectedSubdistrict}
-              </Badge>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => setSelectedSubdistrict(null)}
-                className="w-full sm:w-auto"
+          
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+            {selectedSubdistrict && (
+              <>
+                <Badge variant="secondary" className="flex items-center gap-2">
+                  <Filter className="h-3 w-3" />
+                  Filtrado por: {selectedSubdistrict}
+                </Badge>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setSelectedSubdistrict(null)}
+                  className="w-full sm:w-auto"
+                >
+                  Limpar Filtro
+                </Button>
+              </>
+            )}
+            
+            <div className="flex flex-wrap gap-2">
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="px-3 py-1 border rounded-md text-sm bg-background"
               >
-                Limpar Filtro
+                <option value="all">Todos os Status</option>
+                <option value="pending">Pendentes</option>
+                <option value="approved">Aprovados</option>
+                <option value="delivered">Entregues</option>
+                <option value="received">Recebidos</option>
+                <option value="cancelled">Cancelados</option>
+              </select>
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+                }}
+                className="flex items-center gap-1"
+              >
+                <SortAsc className="h-3 w-3" />
+                {sortOrder === 'asc' ? 'Mais Antigos' : 'Mais Recentes'}
+              </Button>
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExport}
+                className="flex items-center gap-1"
+                disabled={userOrders.length === 0}
+              >
+                <Download className="h-3 w-3" />
+                Exportar
               </Button>
             </div>
-          )}
+          </div>
         </div>
       </div>
 
       {/* Cards de resumo */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mb-4 md:mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-4 md:mb-6">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
@@ -151,6 +260,18 @@ export function SupervisorOrderManagement() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
+              <CheckCircle className="h-5 w-5 text-emerald-600" />
+              <div>
+                <p className="text-sm text-muted-foreground">Recebidos</p>
+                <p className="text-2xl font-bold text-emerald-600">{statusCounts.received}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2">
               <XCircle className="h-5 w-5 text-red-600" />
               <div>
                 <p className="text-sm text-muted-foreground">Cancelados</p>
@@ -180,15 +301,28 @@ export function SupervisorOrderManagement() {
                 }
               </h3>
               <p className="text-muted-foreground mb-4">
-                Crie seu primeiro pedido para começar.
+                {statusFilter !== 'all' 
+                  ? 'Nenhum pedido encontrado com o filtro selecionado.'
+                  : 'Crie seu primeiro pedido para começar.'
+                }
               </p>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => window.location.href = '/order-requests'}
-              >
-                Criar Primeiro Pedido
-              </Button>
+              {statusFilter !== 'all' ? (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setStatusFilter('all')}
+                >
+                  Limpar Filtros
+                </Button>
+              ) : (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => window.location.href = '/order-requests'}
+                >
+                  Criar Primeiro Pedido
+                </Button>
+              )}
             </div>
           ) : (
             <>
@@ -226,10 +360,18 @@ export function SupervisorOrderManagement() {
                             </div>
                           </TableCell>
                           <TableCell>
-                            <Badge className={`${statusMap[order.status].color} text-white`}>
-                              <StatusIcon className="h-3 w-3 mr-1" />
-                              {statusMap[order.status].label}
-                            </Badge>
+                            <div className="flex flex-col gap-1">
+                              <Badge className={`${statusMap[order.status].color} text-white`}>
+                                <StatusIcon className="h-3 w-3 mr-1" />
+                                {statusMap[order.status].label}
+                              </Badge>
+                              {order.status === 'delivered' && (
+                                <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 animate-pulse">
+                                  <Clock className="h-3 w-3 mr-1" />
+                                  Aguardando Confirmação
+                                </Badge>
+                              )}
+                            </div>
                           </TableCell>
                           <TableCell>
                             <span className="text-sm text-muted-foreground">
@@ -309,6 +451,23 @@ export function SupervisorOrderManagement() {
                                         </p>
                                       </div>
                                     )}
+                                    
+                                    {selectedOrder.status === 'delivered' && (
+                                      <div className="flex flex-col sm:flex-row gap-2 pt-4">
+                                        <Button
+                                          onClick={() => handleConfirmReceipt(selectedOrder.id)}
+                                          disabled={updateOrderStatus.isPending}
+                                          className="bg-emerald-600 hover:bg-emerald-700 w-full sm:w-auto"
+                                        >
+                                          <CheckCircle className="h-4 w-4 mr-2" />
+                                          Confirmar Recebimento
+                                        </Button>
+                                        <div className="bg-amber-50 border border-amber-200 rounded-md p-3 text-amber-800 text-sm">
+                                          <p className="font-medium">Importante:</p>
+                                          <p>Confirme apenas após verificar que todos os itens foram recebidos corretamente.</p>
+                                        </div>
+                                      </div>
+                                    )}
                                   </div>
                                 )}
                               </DialogContent>
@@ -343,6 +502,12 @@ export function SupervisorOrderManagement() {
                             <StatusIcon className="h-3 w-3 mr-1" />
                             {statusMap[order.status].label}
                           </Badge>
+                          {order.status === 'delivered' && (
+                            <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 animate-pulse">
+                              <Clock className="h-3 w-3 mr-1" />
+                              Confirmar
+                            </Badge>
+                          )}
                         </div>
                       </div>
                       
@@ -436,6 +601,23 @@ export function SupervisorOrderManagement() {
                                     </p>
                                   </div>
                                 )}
+                                
+                                {selectedOrder.status === 'delivered' && (
+                                  <div className="flex flex-col gap-2 pt-4">
+                                    <Button
+                                      onClick={() => handleConfirmReceipt(selectedOrder.id)}
+                                      disabled={updateOrderStatus.isPending}
+                                      className="bg-emerald-600 hover:bg-emerald-700 w-full"
+                                    >
+                                      <CheckCircle className="h-4 w-4 mr-2" />
+                                      Confirmar Recebimento
+                                    </Button>
+                                    <div className="bg-amber-50 border border-amber-200 rounded-md p-3 text-amber-800 text-sm">
+                                      <p className="font-medium">Importante:</p>
+                                      <p>Confirme apenas após verificar que todos os itens foram recebidos corretamente.</p>
+                                    </div>
+                                  </div>
+                                )}
                               </div>
                             )}
                           </DialogContent>
@@ -449,6 +631,15 @@ export function SupervisorOrderManagement() {
           )}
         </CardContent>
       </Card>
+
+      {/* Floating Action Button */}
+      <Button
+        onClick={() => window.location.href = '/order-requests'}
+        className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg bg-primary hover:bg-primary/90 z-40"
+        size="icon"
+      >
+        <Plus className="h-6 w-6" />
+      </Button>
     </div>
   );
 }

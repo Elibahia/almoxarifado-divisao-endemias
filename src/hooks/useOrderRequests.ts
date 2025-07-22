@@ -7,11 +7,13 @@ import { useToast } from '@/hooks/use-toast';
 
 export interface OrderRequestWithItems extends OrderRequest {
   id: string;
-  status: 'pending' | 'approved' | 'delivered' | 'cancelled';
+  status: 'pending' | 'approved' | 'delivered' | 'received' | 'cancelled';
   createdBy: string | null;
   approvedBy: string | null;
   approvedAt: string | null;
   deliveredAt: string | null;
+  receivedAt: string | null;
+  receivedBy: string | null;
   createdAt: string;
   updatedAt: string;
   items: OrderProduct[];
@@ -43,11 +45,13 @@ export function useOrderRequests() {
         subdistrict: order.subdistrict,
         requestDate: new Date(order.request_date),
         observations: order.observations,
-        status: order.status as 'pending' | 'approved' | 'delivered' | 'cancelled',
+        status: order.status as 'pending' | 'approved' | 'delivered' | 'received' | 'cancelled',
         createdBy: order.created_by,
         approvedBy: order.approved_by,
         approvedAt: order.approved_at,
         deliveredAt: order.delivered_at,
+        receivedAt: order.received_at,
+        receivedBy: order.received_by,
         createdAt: order.created_at,
         updatedAt: order.updated_at,
         items: items
@@ -133,7 +137,7 @@ export function useOrderRequests() {
       status,
     }: {
       orderId: string;
-      status: 'approved' | 'delivered' | 'cancelled';
+      status: 'approved' | 'delivered' | 'received' | 'cancelled';
     }) => {
       const { data: user } = await supabase.auth.getUser();
       const now = new Date().toISOString();
@@ -145,6 +149,9 @@ export function useOrderRequests() {
         updateData.approved_at = now;
       } else if (status === 'delivered') {
         updateData.delivered_at = now;
+      } else if (status === 'received') {
+        updateData.received_by = user.user?.id;
+        updateData.received_at = now;
       }
 
       const { error } = await supabase

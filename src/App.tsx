@@ -3,6 +3,7 @@ import React from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { NotificationToastContainer } from "@/components/ui/notification-toast";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "@/hooks/useTheme";
@@ -89,6 +90,7 @@ const App = () => {
           <TooltipProvider>
             <Toaster />
             <Sonner />
+            <NotificationToastContainer />
             <BrowserRouter>
             <Routes>
               <Route path="/login" element={

@@ -26,6 +26,7 @@ const statusMap = {
   pending: { label: 'Pendente', color: 'bg-yellow-500', icon: Clock },
   approved: { label: 'Aprovado', color: 'bg-blue-500', icon: CheckCircle },
   delivered: { label: 'Entregue', color: 'bg-green-500', icon: Truck },
+  received: { label: 'Recebido', color: 'bg-emerald-600', icon: CheckCircle },
   cancelled: { label: 'Cancelado', color: 'bg-red-500', icon: XCircle },
 } as const;
 
@@ -39,7 +40,7 @@ export function OrderManagement() {
   );
 
   const getStatusCounts = () => {
-    const counts = { pending: 0, approved: 0, delivered: 0, cancelled: 0, total: 0 };
+    const counts = { pending: 0, approved: 0, delivered: 0, received: 0, cancelled: 0, total: 0 };
     filteredOrders.forEach(order => {
       counts[order.status]++;
       counts.total++;
@@ -49,7 +50,7 @@ export function OrderManagement() {
 
   const statusCounts = getStatusCounts();
 
-  const handleStatusUpdate = async (orderId: string, newStatus: 'approved' | 'delivered' | 'cancelled') => {
+  const handleStatusUpdate = async (orderId: string, newStatus: 'approved' | 'delivered' | 'received' | 'cancelled') => {
     try {
       await updateOrderStatus.mutateAsync({ orderId, status: newStatus });
     } catch (error) {
@@ -321,6 +322,17 @@ export function OrderManagement() {
                                         <Truck className="h-4 w-4 mr-2" />
                                         Marcar como Entregue
                                       </Button>
+                                    )}
+                                    {selectedOrder.status === 'delivered' && (
+                                      <div className="flex flex-col w-full sm:w-auto gap-2">
+                                        <Badge className="bg-amber-500 text-white py-2 px-3 flex items-center justify-center">
+                                          <Clock className="h-4 w-4 mr-2" />
+                                          Aguardando Confirmação do Supervisor
+                                        </Badge>
+                                        <p className="text-sm text-muted-foreground text-center">
+                                          O supervisor precisa confirmar o recebimento
+                                        </p>
+                                      </div>
                                     )}
                                   </div>
                                 </div>

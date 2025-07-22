@@ -1,5 +1,4 @@
 
-import React from 'react';
 import { OrderManagement } from '@/components/OrderManagement';
 import { SupervisorOrderManagement } from '@/components/SupervisorOrderManagement';
 import { useAuth } from '@/hooks/useAuth';
