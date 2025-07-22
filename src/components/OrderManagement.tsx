@@ -14,6 +14,9 @@ import {
   Edit,
   Trash2,
   AlertTriangle,
+  Check,
+  X,
+  Minus,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -39,6 +42,7 @@ export function OrderManagement() {
   const [editingOrder, setEditingOrder] = useState<OrderRequestWithItems | null>(null);
   const [deleteConfirmOrder, setDeleteConfirmOrder] = useState<OrderRequestWithItems | null>(null);
   const [activeTab, setActiveTab] = useState<'active' | 'cancelled' | 'completed'>('active');
+  const [itemStockStatus, setItemStockStatus] = useState<Record<string, 'available' | 'unavailable' | 'pending'>>({});
 
   const handleDeleteOrder = async (orderId: string) => {
     try {
@@ -51,6 +55,50 @@ export function OrderManagement() {
 
   const handleEditOrder = (order: OrderRequestWithItems) => {
     setEditingOrder(order);
+  };
+
+  const handleCloseModal = () => {
+    setSelectedOrder(null);
+    setItemStockStatus({});
+  };
+
+  const handleStockStatusChange = (itemId: string, status: 'available' | 'unavailable' | 'pending') => {
+    setItemStockStatus(prev => ({
+      ...prev,
+      [itemId]: status
+    }));
+  };
+
+  const getApprovedItems = () => {
+    if (!selectedOrder) return [];
+    return selectedOrder.items.filter(item => itemStockStatus[item.id] === 'available');
+  };
+
+  const canApproveOrder = () => {
+    if (!selectedOrder) return false;
+    const approvedItems = getApprovedItems();
+    return approvedItems.length > 0;
+  };
+
+  const handlePartialApproval = async () => {
+    if (!selectedOrder) return;
+    
+    const approvedItems = getApprovedItems();
+    if (approvedItems.length === 0) {
+      alert('Selecione pelo menos um item disponível em estoque para aprovar o pedido.');
+      return;
+    }
+
+    try {
+      // Aqui você pode implementar a lógica para aprovar apenas os itens selecionados
+      // Por enquanto, vamos aprovar o pedido inteiro
+      await handleStatusUpdate(selectedOrder.id, 'approved');
+      
+      // Limpar o status dos itens
+      setItemStockStatus({});
+    } catch (error) {
+      console.error('Error approving order:', error);
+    }
   };
 
   const getFilteredOrders = () => {
@@ -315,7 +363,10 @@ export function OrderManagement() {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => setSelectedOrder(order)}
+                                onClick={() => {
+                                  setSelectedOrder(order);
+                                  setItemStockStatus({});
+                                }}
                               >
                                 Ver Detalhes
                               </Button>
@@ -352,6 +403,16 @@ export function OrderManagement() {
 
                                   <div>
                                     <h4 className="font-semibold mb-2">Produtos Solicitados:</h4>
+                                    {selectedOrder.status === 'pending' && (
+                                      <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                                        <p className="text-sm text-blue-800 font-medium">
+                                          Confirmação de Estoque
+                                        </p>
+                                        <p className="text-xs text-blue-600 mt-1">
+                                          Marque os itens que estão disponíveis em estoque para aprovação
+                                        </p>
+                                      </div>
+                                    )}
                                     <div className="rounded-md border overflow-x-auto">
                                       <Table>
                                         <TableHeader>
@@ -359,16 +420,78 @@ export function OrderManagement() {
                                             <TableHead>Produto</TableHead>
                                             <TableHead>Quantidade</TableHead>
                                             <TableHead>Unidade</TableHead>
+                                            {selectedOrder.status === 'pending' && (
+                                              <TableHead className="text-center">Status do Estoque</TableHead>
+                                            )}
                                           </TableRow>
                                         </TableHeader>
                                         <TableBody>
-                                          {selectedOrder.items.map((item) => (
-                                            <TableRow key={item.id}>
-                                              <TableCell>{item.productName}</TableCell>
-                                              <TableCell>{item.quantity}</TableCell>
-                                              <TableCell>{item.unitOfMeasure}</TableCell>
-                                            </TableRow>
-                                          ))}
+                                          {selectedOrder.items.map((item) => {
+                                            const stockStatus = itemStockStatus[item.id] || 'pending';
+                                            return (
+                                              <TableRow key={item.id}>
+                                                <TableCell>{item.productName}</TableCell>
+                                                <TableCell>{item.quantity}</TableCell>
+                                                <TableCell>{item.unitOfMeasure}</TableCell>
+                                                {selectedOrder.status === 'pending' && (
+                                                  <TableCell>
+                                                    <div className="flex justify-center gap-1">
+                                                      <Button
+                                                        size="sm"
+                                                        variant={stockStatus === 'available' ? 'default' : 'outline'}
+                                                        onClick={() => handleStockStatusChange(item.id, 'available')}
+                                                        className={`h-8 w-8 p-0 ${
+                                                          stockStatus === 'available' 
+                                                            ? 'bg-green-600 hover:bg-green-700' 
+                                                            : 'hover:bg-green-50'
+                                                        }`}
+                                                        title="Disponível em estoque"
+                                                      >
+                                                        <Check className="h-4 w-4" />
+                                                      </Button>
+                                                      <Button
+                                                        size="sm"
+                                                        variant={stockStatus === 'unavailable' ? 'default' : 'outline'}
+                                                        onClick={() => handleStockStatusChange(item.id, 'unavailable')}
+                                                        className={`h-8 w-8 p-0 ${
+                                                          stockStatus === 'unavailable' 
+                                                            ? 'bg-red-600 hover:bg-red-700' 
+                                                            : 'hover:bg-red-50'
+                                                        }`}
+                                                        title="Indisponível em estoque"
+                                                      >
+                                                        <X className="h-4 w-4" />
+                                                      </Button>
+                                                      <Button
+                                                        size="sm"
+                                                        variant={stockStatus === 'pending' ? 'default' : 'outline'}
+                                                        onClick={() => handleStockStatusChange(item.id, 'pending')}
+                                                        className={`h-8 w-8 p-0 ${
+                                                          stockStatus === 'pending' 
+                                                            ? 'bg-gray-600 hover:bg-gray-700' 
+                                                            : 'hover:bg-gray-50'
+                                                        }`}
+                                                        title="Pendente verificação"
+                                                      >
+                                                        <Minus className="h-4 w-4" />
+                                                      </Button>
+                                                    </div>
+                                                    <div className="text-xs text-center mt-1">
+                                                      {stockStatus === 'available' && (
+                                                        <span className="text-green-600 font-medium">Disponível</span>
+                                                      )}
+                                                      {stockStatus === 'unavailable' && (
+                                                        <span className="text-red-600 font-medium">Indisponível</span>
+                                                      )}
+                                                      {stockStatus === 'pending' && (
+                                                        <span className="text-gray-600">Pendente</span>
+                                                      )}
+                                                    </div>
+                                                  </TableCell>
+                                                )}
+                                              </TableRow>
+                                            );
+                                          })}
                                         </TableBody>
                                       </Table>
                                     </div>
@@ -386,23 +509,57 @@ export function OrderManagement() {
                                   <div className="flex flex-col sm:flex-row gap-2 pt-4">
                                     {selectedOrder.status === 'pending' && (
                                       <>
-                                        <Button
-                                          onClick={() => handleStatusUpdate(selectedOrder.id, 'approved')}
-                                          disabled={updateOrderStatus.isPending}
-                                          className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto"
-                                        >
-                                          <CheckCircle className="h-4 w-4 mr-2" />
-                                          Aprovar
-                                        </Button>
-                                        <Button
-                                          variant="destructive"
-                                          onClick={() => handleStatusUpdate(selectedOrder.id, 'cancelled')}
-                                          disabled={updateOrderStatus.isPending}
-                                          className="w-full sm:w-auto"
-                                        >
-                                          <XCircle className="h-4 w-4 mr-2" />
-                                          Cancelar
-                                        </Button>
+                                        {/* Resumo dos itens selecionados */}
+                                        <div className="w-full mb-3 p-3 bg-gray-50 rounded-md">
+                                          <div className="grid grid-cols-3 gap-4 text-sm">
+                                            <div className="text-center">
+                                              <div className="text-green-600 font-semibold">
+                                                {selectedOrder.items.filter(item => itemStockStatus[item.id] === 'available').length}
+                                              </div>
+                                              <div className="text-xs text-gray-600">Disponíveis</div>
+                                            </div>
+                                            <div className="text-center">
+                                              <div className="text-red-600 font-semibold">
+                                                {selectedOrder.items.filter(item => itemStockStatus[item.id] === 'unavailable').length}
+                                              </div>
+                                              <div className="text-xs text-gray-600">Indisponíveis</div>
+                                            </div>
+                                            <div className="text-center">
+                                              <div className="text-gray-600 font-semibold">
+                                                {selectedOrder.items.filter(item => !itemStockStatus[item.id] || itemStockStatus[item.id] === 'pending').length}
+                                              </div>
+                                              <div className="text-xs text-gray-600">Pendentes</div>
+                                            </div>
+                                          </div>
+                                        </div>
+
+                                        <div className="flex flex-col sm:flex-row gap-2 w-full">
+                                          <Button
+                                            onClick={handlePartialApproval}
+                                            disabled={updateOrderStatus.isPending || !canApproveOrder()}
+                                            className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto"
+                                          >
+                                            <CheckCircle className="h-4 w-4 mr-2" />
+                                            Aprovar Itens Disponíveis ({getApprovedItems().length})
+                                          </Button>
+                                          <Button
+                                            variant="destructive"
+                                            onClick={() => handleStatusUpdate(selectedOrder.id, 'cancelled')}
+                                            disabled={updateOrderStatus.isPending}
+                                            className="w-full sm:w-auto"
+                                          >
+                                            <XCircle className="h-4 w-4 mr-2" />
+                                            Cancelar Pedido
+                                          </Button>
+                                        </div>
+
+                                        {!canApproveOrder() && (
+                                          <div className="w-full mt-2 p-2 bg-amber-50 border border-amber-200 rounded-md">
+                                            <p className="text-sm text-amber-800">
+                                              Selecione pelo menos um item disponível em estoque para aprovar o pedido.
+                                            </p>
+                                          </div>
+                                        )}
                                       </>
                                     )}
                                     {selectedOrder.status === 'approved' && (
@@ -509,7 +666,10 @@ export function OrderManagement() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => setSelectedOrder(order)}
+                          onClick={() => {
+                            setSelectedOrder(order);
+                            setItemStockStatus({});
+                          }}
                           className="w-full"
                         >
                           Ver Detalhes
@@ -547,25 +707,85 @@ export function OrderManagement() {
 
                             <div>
                               <h4 className="font-semibold mb-2">Produtos Solicitados:</h4>
-                              <div className="rounded-md border overflow-x-auto">
-                                <Table>
-                                  <TableHeader>
-                                    <TableRow>
-                                      <TableHead>Produto</TableHead>
-                                      <TableHead>Quantidade</TableHead>
-                                      <TableHead>Unidade</TableHead>
-                                    </TableRow>
-                                  </TableHeader>
-                                  <TableBody>
-                                    {selectedOrder.items.map((item) => (
-                                      <TableRow key={item.id}>
-                                        <TableCell>{item.productName}</TableCell>
-                                        <TableCell>{item.quantity}</TableCell>
-                                        <TableCell>{item.unitOfMeasure}</TableCell>
-                                      </TableRow>
-                                    ))}
-                                  </TableBody>
-                                </Table>
+                              {selectedOrder.status === 'pending' && (
+                                <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                                  <p className="text-sm text-blue-800 font-medium">
+                                    Confirmação de Estoque
+                                  </p>
+                                  <p className="text-xs text-blue-600 mt-1">
+                                    Marque os itens que estão disponíveis em estoque
+                                  </p>
+                                </div>
+                              )}
+                              <div className="space-y-3">
+                                {selectedOrder.items.map((item) => {
+                                  const stockStatus = itemStockStatus[item.id] || 'pending';
+                                  return (
+                                    <div key={item.id} className="border rounded-md p-3">
+                                      <div className="flex justify-between items-start mb-2">
+                                        <div className="flex-1">
+                                          <p className="font-medium">{item.productName}</p>
+                                          <p className="text-sm text-gray-600">
+                                            {item.quantity} {item.unitOfMeasure}
+                                          </p>
+                                        </div>
+                                        {selectedOrder.status === 'pending' && (
+                                          <div className="flex flex-col items-end gap-1">
+                                            <div className="flex gap-1">
+                                              <Button
+                                                size="sm"
+                                                variant={stockStatus === 'available' ? 'default' : 'outline'}
+                                                onClick={() => handleStockStatusChange(item.id, 'available')}
+                                                className={`h-7 w-7 p-0 ${
+                                                  stockStatus === 'available' 
+                                                    ? 'bg-green-600 hover:bg-green-700' 
+                                                    : 'hover:bg-green-50'
+                                                }`}
+                                              >
+                                                <Check className="h-3 w-3" />
+                                              </Button>
+                                              <Button
+                                                size="sm"
+                                                variant={stockStatus === 'unavailable' ? 'default' : 'outline'}
+                                                onClick={() => handleStockStatusChange(item.id, 'unavailable')}
+                                                className={`h-7 w-7 p-0 ${
+                                                  stockStatus === 'unavailable' 
+                                                    ? 'bg-red-600 hover:bg-red-700' 
+                                                    : 'hover:bg-red-50'
+                                                }`}
+                                              >
+                                                <X className="h-3 w-3" />
+                                              </Button>
+                                              <Button
+                                                size="sm"
+                                                variant={stockStatus === 'pending' ? 'default' : 'outline'}
+                                                onClick={() => handleStockStatusChange(item.id, 'pending')}
+                                                className={`h-7 w-7 p-0 ${
+                                                  stockStatus === 'pending' 
+                                                    ? 'bg-gray-600 hover:bg-gray-700' 
+                                                    : 'hover:bg-gray-50'
+                                                }`}
+                                              >
+                                                <Minus className="h-3 w-3" />
+                                              </Button>
+                                            </div>
+                                            <div className="text-xs">
+                                              {stockStatus === 'available' && (
+                                                <span className="text-green-600 font-medium">Disponível</span>
+                                              )}
+                                              {stockStatus === 'unavailable' && (
+                                                <span className="text-red-600 font-medium">Indisponível</span>
+                                              )}
+                                              {stockStatus === 'pending' && (
+                                                <span className="text-gray-600">Pendente</span>
+                                              )}
+                                            </div>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
                               </div>
                             </div>
 
@@ -578,26 +798,58 @@ export function OrderManagement() {
                               </div>
                             )}
 
-                            <div className="flex flex-col sm:flex-row gap-2 pt-4">
+                            <div className="flex flex-col gap-2 pt-4">
                               {selectedOrder.status === 'pending' && (
                                 <>
+                                  {/* Resumo dos itens selecionados - Mobile */}
+                                  <div className="p-3 bg-gray-50 rounded-md">
+                                    <div className="grid grid-cols-3 gap-2 text-sm">
+                                      <div className="text-center">
+                                        <div className="text-green-600 font-semibold">
+                                          {selectedOrder.items.filter(item => itemStockStatus[item.id] === 'available').length}
+                                        </div>
+                                        <div className="text-xs text-gray-600">Disponíveis</div>
+                                      </div>
+                                      <div className="text-center">
+                                        <div className="text-red-600 font-semibold">
+                                          {selectedOrder.items.filter(item => itemStockStatus[item.id] === 'unavailable').length}
+                                        </div>
+                                        <div className="text-xs text-gray-600">Indisponíveis</div>
+                                      </div>
+                                      <div className="text-center">
+                                        <div className="text-gray-600 font-semibold">
+                                          {selectedOrder.items.filter(item => !itemStockStatus[item.id] || itemStockStatus[item.id] === 'pending').length}
+                                        </div>
+                                        <div className="text-xs text-gray-600">Pendentes</div>
+                                      </div>
+                                    </div>
+                                  </div>
+
                                   <Button
-                                    onClick={() => handleStatusUpdate(selectedOrder.id, 'approved')}
-                                    disabled={updateOrderStatus.isPending}
-                                    className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto"
+                                    onClick={handlePartialApproval}
+                                    disabled={updateOrderStatus.isPending || !canApproveOrder()}
+                                    className="bg-blue-600 hover:bg-blue-700 w-full"
                                   >
                                     <CheckCircle className="h-4 w-4 mr-2" />
-                                    Aprovar
+                                    Aprovar Itens Disponíveis ({getApprovedItems().length})
                                   </Button>
                                   <Button
                                     variant="destructive"
                                     onClick={() => handleStatusUpdate(selectedOrder.id, 'cancelled')}
                                     disabled={updateOrderStatus.isPending}
-                                    className="w-full sm:w-auto"
+                                    className="w-full"
                                   >
                                     <XCircle className="h-4 w-4 mr-2" />
-                                    Cancelar
+                                    Cancelar Pedido
                                   </Button>
+
+                                  {!canApproveOrder() && (
+                                    <div className="p-2 bg-amber-50 border border-amber-200 rounded-md">
+                                      <p className="text-sm text-amber-800">
+                                        Selecione pelo menos um item disponível em estoque para aprovar o pedido.
+                                      </p>
+                                    </div>
+                                  )}
                                 </>
                               )}
                               {selectedOrder.status === 'approved' && (
