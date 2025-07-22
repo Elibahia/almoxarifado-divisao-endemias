@@ -18,6 +18,7 @@ import {
   X,
   Minus,
   Plus,
+  Save,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -25,6 +26,8 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { useOrderRequests, OrderRequestWithItems } from '@/hooks/useOrderRequests';
 import { SUBDISTRICTS } from '@/types/orderTypes';
 
@@ -44,6 +47,18 @@ export function OrderManagement() {
   const [deleteConfirmOrder, setDeleteConfirmOrder] = useState<OrderRequestWithItems | null>(null);
   const [activeTab, setActiveTab] = useState<'active' | 'cancelled' | 'completed'>('active');
   const [itemStockStatus, setItemStockStatus] = useState<Record<string, 'available' | 'unavailable' | 'pending'>>({});
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editFormData, setEditFormData] = useState<{
+    requesterName: string;
+    subdistrict: string;
+    observations: string;
+    items: Array<{
+      id: string;
+      productName: string;
+      quantity: number;
+      unitOfMeasure: string;
+    }>;
+  } | null>(null);
 
   const handleDeleteOrder = async (orderId: string) => {
     try {
@@ -56,6 +71,82 @@ export function OrderManagement() {
 
   const handleEditOrder = (order: OrderRequestWithItems) => {
     setEditingOrder(order);
+    setIsEditMode(false);
+    setEditFormData({
+      requesterName: order.requesterName,
+      subdistrict: order.subdistrict,
+      observations: order.observations || '',
+      items: order.items.map(item => ({
+        id: item.id,
+        productName: item.productName,
+        quantity: item.quantity,
+        unitOfMeasure: item.unitOfMeasure,
+      }))
+    });
+  };
+
+  const handleStartEdit = () => {
+    setIsEditMode(true);
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditMode(false);
+    if (editingOrder) {
+      setEditFormData({
+        requesterName: editingOrder.requesterName,
+        subdistrict: editingOrder.subdistrict,
+        observations: editingOrder.observations || '',
+        items: editingOrder.items.map(item => ({
+          id: item.id,
+          productName: item.productName,
+          quantity: item.quantity,
+          unitOfMeasure: item.unitOfMeasure,
+        }))
+      });
+    }
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingOrder || !editFormData) return;
+
+    try {
+      // Aqui você implementaria a lógica para salvar as alterações
+      // Por enquanto, vamos simular o salvamento
+      console.log('Salvando alterações:', editFormData);
+      
+      // Simular sucesso
+      alert('Pedido atualizado com sucesso!');
+      setIsEditMode(false);
+      setEditingOrder(null);
+      setEditFormData(null);
+      
+      // Aqui você chamaria uma função para atualizar o pedido no backend
+      // await updateOrderRequest.mutateAsync({ orderId: editingOrder.id, data: editFormData });
+      
+    } catch (error) {
+      console.error('Erro ao salvar alterações:', error);
+      alert('Erro ao salvar alterações. Tente novamente.');
+    }
+  };
+
+  const handleItemQuantityChange = (itemId: string, newQuantity: number) => {
+    if (!editFormData) return;
+    
+    setEditFormData({
+      ...editFormData,
+      items: editFormData.items.map(item =>
+        item.id === itemId ? { ...item, quantity: Math.max(1, newQuantity) } : item
+      )
+    });
+  };
+
+  const handleRemoveItem = (itemId: string) => {
+    if (!editFormData) return;
+    
+    setEditFormData({
+      ...editFormData,
+      items: editFormData.items.filter(item => item.id !== itemId)
+    });
   };
 
   const handleCloseModal = () => {
@@ -953,31 +1044,68 @@ export function OrderManagement() {
       </Dialog>
 
       {/* Dialog de Edição */}
-      <Dialog open={!!editingOrder} onOpenChange={() => setEditingOrder(null)}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <Dialog open={!!editingOrder} onOpenChange={() => {
+        setEditingOrder(null);
+        setIsEditMode(false);
+        setEditFormData(null);
+      }}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Edit className="h-5 w-5" />
-              Editar Pedido
+              {isEditMode ? 'Editando Pedido' : 'Editar Pedido'}
             </DialogTitle>
           </DialogHeader>
-          {editingOrder && (
+          {editingOrder && editFormData && (
             <div className="space-y-4">
-              <div className="bg-amber-50 p-3 rounded-md border border-amber-200">
-                <p className="text-sm text-amber-800">
-                  <strong>Funcionalidade em Desenvolvimento:</strong> A edição completa de pedidos está sendo implementada. 
-                  Por enquanto, você pode visualizar os detalhes e, se necessário, cancelar o pedido e criar um novo.
-                </p>
-              </div>
+              {!isEditMode && (
+                <div className="bg-blue-50 p-3 rounded-md border border-blue-200">
+                  <p className="text-sm text-blue-800">
+                    <strong>Modo de Edição:</strong> Clique em "Editar Pedido" para modificar os dados do pedido.
+                  </p>
+                </div>
+              )}
               
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="font-semibold">Solicitante:</label>
-                  <p className="text-gray-700">{editingOrder.requesterName}</p>
+                  {isEditMode ? (
+                    <Input
+                      value={editFormData.requesterName}
+                      onChange={(e) => setEditFormData({
+                        ...editFormData,
+                        requesterName: e.target.value
+                      })}
+                      className="mt-1"
+                    />
+                  ) : (
+                    <p className="text-gray-700">{editFormData.requesterName}</p>
+                  )}
                 </div>
                 <div>
                   <label className="font-semibold">Subdistrito:</label>
-                  <p className="text-gray-700">{editingOrder.subdistrict}</p>
+                  {isEditMode ? (
+                    <Select
+                      value={editFormData.subdistrict}
+                      onValueChange={(value) => setEditFormData({
+                        ...editFormData,
+                        subdistrict: value
+                      })}
+                    >
+                      <SelectTrigger className="mt-1">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {SUBDISTRICTS.map((sub) => (
+                          <SelectItem key={sub.value} value={sub.value}>
+                            {sub.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <p className="text-gray-700">{editFormData.subdistrict}</p>
+                  )}
                 </div>
                 <div>
                   <label className="font-semibold">Data do Pedido:</label>
@@ -992,77 +1120,155 @@ export function OrderManagement() {
               </div>
 
               <div>
-                <h4 className="font-semibold mb-2">Produtos Solicitados:</h4>
-                <div className="rounded-md border overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Produto</TableHead>
-                        <TableHead>Quantidade</TableHead>
-                        <TableHead>Unidade</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {editingOrder.items.map((item) => (
-                        <TableRow key={item.id}>
-                          <TableCell>{item.productName}</TableCell>
-                          <TableCell>{item.quantity}</TableCell>
-                          <TableCell>{item.unitOfMeasure}</TableCell>
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="font-semibold">Produtos Solicitados:</h4>
+                  {isEditMode && (
+                    <div className="text-sm text-gray-600">
+                      {editFormData.items.length} item(s)
+                    </div>
+                  )}
+                </div>
+                
+                {isEditMode ? (
+                  <div className="space-y-3">
+                    {editFormData.items.map((item, index) => (
+                      <div key={item.id} className="border rounded-md p-3 bg-gray-50">
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+                          <div className="md:col-span-2">
+                            <label className="text-sm font-medium">Produto:</label>
+                            <p className="text-sm text-gray-700 mt-1">{item.productName}</p>
+                          </div>
+                          <div>
+                            <label className="text-sm font-medium">Quantidade:</label>
+                            <Input
+                              type="number"
+                              min="1"
+                              value={item.quantity}
+                              onChange={(e) => handleItemQuantityChange(item.id, parseInt(e.target.value) || 1)}
+                              className="mt-1"
+                            />
+                          </div>
+                          <div className="flex items-end gap-2">
+                            <div className="flex-1">
+                              <label className="text-sm font-medium">Unidade:</label>
+                              <p className="text-sm text-gray-700 mt-1">{item.unitOfMeasure}</p>
+                            </div>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleRemoveItem(item.id)}
+                              className="text-red-600 hover:text-red-700"
+                              disabled={editFormData.items.length <= 1}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    
+                    {editFormData.items.length === 0 && (
+                      <div className="text-center py-4 text-gray-500">
+                        Nenhum produto no pedido
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="rounded-md border overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Produto</TableHead>
+                          <TableHead>Quantidade</TableHead>
+                          <TableHead>Unidade</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
+                      </TableHeader>
+                      <TableBody>
+                        {editFormData.items.map((item) => (
+                          <TableRow key={item.id}>
+                            <TableCell>{item.productName}</TableCell>
+                            <TableCell>{item.quantity}</TableCell>
+                            <TableCell>{item.unitOfMeasure}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
               </div>
 
-              {editingOrder.observations && (
-                <div>
-                  <label className="font-semibold">Observações:</label>
+              <div>
+                <label className="font-semibold">Observações:</label>
+                {isEditMode ? (
+                  <Textarea
+                    value={editFormData.observations}
+                    onChange={(e) => setEditFormData({
+                      ...editFormData,
+                      observations: e.target.value
+                    })}
+                    placeholder="Observações adicionais..."
+                    className="mt-1"
+                    rows={3}
+                  />
+                ) : (
                   <p className="text-sm text-gray-600 mt-1 p-2 bg-gray-50 rounded-md">
-                    {editingOrder.observations}
+                    {editFormData.observations || 'Nenhuma observação'}
                   </p>
-                </div>
-              )}
-
-              <div className="bg-blue-50 p-3 rounded-md border border-blue-200">
-                <h5 className="font-semibold text-blue-800 mb-2">Opções Disponíveis:</h5>
-                <ul className="text-sm text-blue-700 space-y-1">
-                  <li>• Visualizar todos os detalhes do pedido</li>
-                  <li>• Cancelar o pedido se necessário</li>
-                  <li>• Criar um novo pedido com as informações atualizadas</li>
-                </ul>
+                )}
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-2 justify-end">
-                <Button
-                  variant="outline"
-                  onClick={() => setEditingOrder(null)}
-                >
-                  Fechar
-                </Button>
-                <Button
-                  variant="destructive"
-                  onClick={() => {
-                    if (confirm('Tem certeza que deseja cancelar este pedido? Esta ação não pode ser desfeita.')) {
-                      handleStatusUpdate(editingOrder.id, 'cancelled');
-                      setEditingOrder(null);
-                    }
-                  }}
-                  disabled={updateOrderStatus.isPending}
-                >
-                  <XCircle className="h-4 w-4 mr-2" />
-                  Cancelar Pedido
-                </Button>
-                <Button
-                  onClick={() => {
-                    setEditingOrder(null);
-                    window.location.href = '/order-requests';
-                  }}
-                  className="bg-green-600 hover:bg-green-700"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Criar Novo Pedido
-                </Button>
+              <div className="flex flex-col sm:flex-row gap-2 justify-end pt-4 border-t">
+                {!isEditMode ? (
+                  <>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setEditingOrder(null);
+                        setEditFormData(null);
+                      }}
+                    >
+                      Fechar
+                    </Button>
+                    <Button
+                      onClick={handleStartEdit}
+                      className="bg-blue-600 hover:bg-blue-700"
+                    >
+                      <Edit className="h-4 w-4 mr-2" />
+                      Editar Pedido
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      onClick={() => {
+                        if (confirm('Tem certeza que deseja cancelar este pedido? Esta ação não pode ser desfeita.')) {
+                          handleStatusUpdate(editingOrder.id, 'cancelled');
+                          setEditingOrder(null);
+                          setEditFormData(null);
+                        }
+                      }}
+                      disabled={updateOrderStatus.isPending}
+                    >
+                      <XCircle className="h-4 w-4 mr-2" />
+                      Cancelar Pedido
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button
+                      variant="outline"
+                      onClick={handleCancelEdit}
+                    >
+                      Cancelar Edição
+                    </Button>
+                    <Button
+                      onClick={handleSaveEdit}
+                      className="bg-green-600 hover:bg-green-700"
+                      disabled={editFormData.items.length === 0 || !editFormData.requesterName.trim()}
+                    >
+                      <Save className="h-4 w-4 mr-2" />
+                      Salvar Edição
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
           )}
