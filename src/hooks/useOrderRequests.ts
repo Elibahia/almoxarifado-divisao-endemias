@@ -1,5 +1,4 @@
 
-import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { OrderRequest, OrderProduct } from '@/types/orderTypes';
@@ -178,10 +177,46 @@ export function useOrderRequests() {
     },
   });
 
+  const deleteOrderRequest = useMutation({
+    mutationFn: async (orderId: string) => {
+      // First delete the order items
+      const { error: itemsError } = await supabase
+        .from('order_request_items')
+        .delete()
+        .eq('order_request_id', orderId);
+
+      if (itemsError) throw itemsError;
+
+      // Then delete the order
+      const { error: orderError } = await supabase
+        .from('order_requests')
+        .delete()
+        .eq('id', orderId);
+
+      if (orderError) throw orderError;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['orderRequests'] });
+      toast({
+        title: 'Pedido excluído com sucesso!',
+        description: 'O pedido foi removido permanentemente.',
+      });
+    },
+    onError: (error) => {
+      console.error('Error deleting order request:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao excluir pedido',
+        description: 'Ocorreu um erro ao excluir o pedido.',
+      });
+    },
+  });
+
   return {
     orderRequests,
     isLoading,
     createOrderRequest,
     updateOrderStatus,
+    deleteOrderRequest,
   };
 }

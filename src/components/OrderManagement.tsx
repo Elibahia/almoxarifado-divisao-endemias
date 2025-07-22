@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
@@ -9,9 +9,11 @@ import {
   MapPin,
   User,
   Calendar,
-  FileText,
   Truck,
   XCircle,
+  Edit,
+  Trash2,
+  AlertTriangle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -31,20 +33,72 @@ const statusMap = {
 } as const;
 
 export function OrderManagement() {
-  const { orderRequests, isLoading, updateOrderStatus } = useOrderRequests();
+  const { orderRequests, isLoading, updateOrderStatus, deleteOrderRequest } = useOrderRequests();
   const [selectedSubdistrict, setSelectedSubdistrict] = useState<string>('all');
   const [selectedOrder, setSelectedOrder] = useState<OrderRequestWithItems | null>(null);
+  const [editingOrder, setEditingOrder] = useState<OrderRequestWithItems | null>(null);
+  const [deleteConfirmOrder, setDeleteConfirmOrder] = useState<OrderRequestWithItems | null>(null);
+  const [activeTab, setActiveTab] = useState<'active' | 'cancelled' | 'completed'>('active');
 
-  const filteredOrders = orderRequests.filter(order => 
-    selectedSubdistrict === 'all' || order.subdistrict === selectedSubdistrict
-  );
+  const handleDeleteOrder = async (orderId: string) => {
+    try {
+      await deleteOrderRequest.mutateAsync(orderId);
+      setDeleteConfirmOrder(null);
+    } catch (error) {
+      console.error('Error deleting order:', error);
+    }
+  };
+
+  const handleEditOrder = (order: OrderRequestWithItems) => {
+    setEditingOrder(order);
+  };
+
+  const getFilteredOrders = () => {
+    let filtered = orderRequests.filter(order => 
+      selectedSubdistrict === 'all' || order.subdistrict === selectedSubdistrict
+    );
+
+    switch (activeTab) {
+      case 'active':
+        return filtered.filter(order => !['cancelled', 'received'].includes(order.status));
+      case 'cancelled':
+        return filtered.filter(order => order.status === 'cancelled');
+      case 'completed':
+        return filtered.filter(order => order.status === 'received');
+      default:
+        return filtered;
+    }
+  };
+
+  const filteredOrders = getFilteredOrders();
 
   const getStatusCounts = () => {
-    const counts = { pending: 0, approved: 0, delivered: 0, received: 0, cancelled: 0, total: 0 };
-    filteredOrders.forEach(order => {
+    const allOrders = orderRequests.filter(order => 
+      selectedSubdistrict === 'all' || order.subdistrict === selectedSubdistrict
+    );
+    
+    const counts = { 
+      pending: 0, 
+      approved: 0, 
+      delivered: 0, 
+      received: 0, 
+      cancelled: 0, 
+      total: 0,
+      active: 0,
+      completed: 0
+    };
+    
+    allOrders.forEach(order => {
       counts[order.status]++;
       counts.total++;
+      
+      if (['pending', 'approved', 'delivered'].includes(order.status)) {
+        counts.active++;
+      } else if (order.status === 'received') {
+        counts.completed++;
+      }
     });
+    
     return counts;
   };
 
@@ -163,12 +217,50 @@ export function OrderManagement() {
         </Card>
       </div>
 
+      {/* Abas de navegação */}
+      <div className="mb-4 md:mb-6">
+        <div className="flex flex-wrap gap-2 border-b">
+          <button
+            onClick={() => setActiveTab('active')}
+            className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
+              activeTab === 'active'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            Pedidos Ativos ({statusCounts.active})
+          </button>
+          <button
+            onClick={() => setActiveTab('completed')}
+            className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
+              activeTab === 'completed'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            Pedidos Atendidos ({statusCounts.completed})
+          </button>
+          <button
+            onClick={() => setActiveTab('cancelled')}
+            className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
+              activeTab === 'cancelled'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            Pedidos Cancelados ({statusCounts.cancelled})
+          </button>
+        </div>
+      </div>
+
       {/* Tabela de pedidos */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Package className="h-5 w-5" />
-            Lista de Pedidos
+            {activeTab === 'active' && 'Pedidos Ativos'}
+            {activeTab === 'completed' && 'Pedidos Atendidos'}
+            {activeTab === 'cancelled' && 'Pedidos Cancelados'}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -339,6 +431,28 @@ export function OrderManagement() {
                               )}
                             </DialogContent>
                           </Dialog>
+                          
+                          {/* Botões de Editar e Deletar */}
+                          {order.status === 'pending' && (
+                            <>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleEditOrder(order)}
+                                className="text-blue-600 hover:text-blue-700"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setDeleteConfirmOrder(order)}
+                                className="text-red-600 hover:text-red-700"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>
@@ -389,7 +503,7 @@ export function OrderManagement() {
                     </div>
                   </div>
                   
-                  <div className="pt-3 border-t">
+                  <div className="pt-3 border-t space-y-2">
                     <Dialog>
                       <DialogTrigger asChild>
                         <Button
@@ -501,6 +615,30 @@ export function OrderManagement() {
                         )}
                       </DialogContent>
                     </Dialog>
+                    
+                    {/* Botões de Editar e Deletar - Mobile */}
+                    {order.status === 'pending' && (
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEditOrder(order)}
+                          className="flex-1 text-blue-600 hover:text-blue-700"
+                        >
+                          <Edit className="h-4 w-4 mr-2" />
+                          Editar
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setDeleteConfirmOrder(order)}
+                          className="flex-1 text-red-600 hover:text-red-700"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Excluir
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </Card>
               );
@@ -520,6 +658,116 @@ export function OrderManagement() {
           )}
         </CardContent>
       </Card>
+
+      {/* Dialog de Confirmação de Exclusão */}
+      <Dialog open={!!deleteConfirmOrder} onOpenChange={() => setDeleteConfirmOrder(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-red-500" />
+              Confirmar Exclusão
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p>Tem certeza que deseja excluir este pedido?</p>
+            {deleteConfirmOrder && (
+              <div className="bg-gray-50 p-3 rounded-md">
+                <p><strong>Solicitante:</strong> {deleteConfirmOrder.requesterName}</p>
+                <p><strong>Subdistrito:</strong> {deleteConfirmOrder.subdistrict}</p>
+                <p><strong>Data:</strong> {format(deleteConfirmOrder.requestDate, 'dd/MM/yyyy', { locale: ptBR })}</p>
+              </div>
+            )}
+            <p className="text-sm text-red-600">
+              <strong>Atenção:</strong> Esta ação não pode ser desfeita.
+            </p>
+            <div className="flex gap-2 justify-end">
+              <Button
+                variant="outline"
+                onClick={() => setDeleteConfirmOrder(null)}
+              >
+                Cancelar
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => deleteConfirmOrder && handleDeleteOrder(deleteConfirmOrder.id)}
+                disabled={deleteOrderRequest.isPending}
+              >
+                {deleteOrderRequest.isPending ? 'Excluindo...' : 'Excluir'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog de Edição */}
+      <Dialog open={!!editingOrder} onOpenChange={() => setEditingOrder(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Edit className="h-5 w-5" />
+              Editar Pedido
+            </DialogTitle>
+          </DialogHeader>
+          {editingOrder && (
+            <div className="space-y-4">
+              <div className="bg-blue-50 p-3 rounded-md">
+                <p className="text-sm text-blue-800">
+                  <strong>Nota:</strong> Apenas pedidos com status "Pendente" podem ser editados.
+                </p>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="font-semibold">Solicitante:</label>
+                  <p>{editingOrder.requesterName}</p>
+                </div>
+                <div>
+                  <label className="font-semibold">Subdistrito:</label>
+                  <p>{editingOrder.subdistrict}</p>
+                </div>
+              </div>
+              <div>
+                <h4 className="font-semibold mb-2">Produtos Solicitados:</h4>
+                <div className="rounded-md border overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Produto</TableHead>
+                        <TableHead>Quantidade</TableHead>
+                        <TableHead>Unidade</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {editingOrder.items.map((item) => (
+                        <TableRow key={item.id}>
+                          <TableCell>{item.productName}</TableCell>
+                          <TableCell>{item.quantity}</TableCell>
+                          <TableCell>{item.unitOfMeasure}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+              <div className="flex gap-2 justify-end">
+                <Button
+                  variant="outline"
+                  onClick={() => setEditingOrder(null)}
+                >
+                  Fechar
+                </Button>
+                <Button
+                  onClick={() => {
+                    // Redirecionar para página de edição ou abrir formulário de edição
+                    window.location.href = `/order-requests?edit=${editingOrder.id}`;
+                  }}
+                >
+                  Ir para Edição
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
