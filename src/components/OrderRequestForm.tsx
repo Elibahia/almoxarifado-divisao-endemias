@@ -2,6 +2,7 @@
 import React, { useState, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import { Plus, Trash2, Package, Calendar, User, MapPin, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -139,7 +140,15 @@ export function OrderRequestForm() {
     }
   };
 
-  const today = format(new Date(), 'dd/MM/yyyy');
+  // Criar data local sem problemas de fuso horário
+  const getCurrentDate = () => {
+    const now = new Date();
+    // Ajustar para o fuso horário local
+    const localDate = new Date(now.getTime() - (now.getTimezoneOffset() * 60000));
+    return format(localDate, 'dd/MM/yyyy', { locale: ptBR });
+  };
+  
+  const today = getCurrentDate();
 
   return (
     <div className="container mx-auto py-4 md:py-6 px-4 max-w-6xl">

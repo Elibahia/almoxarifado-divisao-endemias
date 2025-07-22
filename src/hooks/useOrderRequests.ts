@@ -42,7 +42,7 @@ export function useOrderRequests() {
         id: order.id,
         requesterName: order.requester_name,
         subdistrict: order.subdistrict,
-        requestDate: new Date(order.request_date),
+        requestDate: order.request_date ? new Date(order.request_date + 'T00:00:00') : new Date(),
         observations: order.observations,
         status: order.status as 'pending' | 'approved' | 'delivered' | 'received' | 'cancelled',
         createdBy: order.created_by,
@@ -84,12 +84,17 @@ export function useOrderRequests() {
     }) => {
       const { data: user } = await supabase.auth.getUser();
       
+      // Criar data local para evitar problemas de fuso horário
+      const now = new Date();
+      const localDate = new Date(now.getTime() - (now.getTimezoneOffset() * 60000));
+      
       const { data: order, error: orderError } = await supabase
         .from('order_requests')
         .insert({
           requester_name: orderData.requesterName,
           subdistrict: orderData.subdistrict,
           observations: orderData.observations,
+          request_date: localDate.toISOString().split('T')[0], // Formato YYYY-MM-DD
           created_by: user.user?.id,
         })
         .select()
