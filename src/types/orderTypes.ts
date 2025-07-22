@@ -3,7 +3,7 @@ export interface OrderProduct {
   id: string;
   productId: string;
   productName: string;
-  quantity: number;
+  quantity: number | string; // Permite string vazia durante edição
   unitOfMeasure: string;
 }
 

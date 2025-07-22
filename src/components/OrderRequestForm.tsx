@@ -1,8 +1,6 @@
 
 import React, { useState, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { format } from 'date-fns';
 import { Plus, Trash2, Package, Calendar, User, MapPin, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -19,18 +17,36 @@ import { useAuth } from '@/hooks/useAuth';
 import { OrderFormData, OrderProduct, SUBDISTRICTS } from '@/types/orderTypes';
 import { UNIT_OF_MEASURE_OPTIONS } from '@/types/unitTypes';
 
-const orderSchema = z.object({
-  requesterName: z.string().min(1, 'Nome do solicitante é obrigatório'),
-  subdistrict: z.string().min(1, 'Subdistrito é obrigatório'),
-  products: z.array(z.object({
-    id: z.string(),
-    productId: z.string().min(1, 'Produto é obrigatório'),
-    productName: z.string().min(1, 'Nome do produto é obrigatório'),
-    quantity: z.number().min(1, 'Quantidade deve ser maior que zero'),
-    unitOfMeasure: z.string().min(1, 'Unidade de medida é obrigatória'),
-  })).min(1, 'Pelo menos um produto deve ser adicionado'),
-  observations: z.string().optional(),
-});
+// Schema de validação customizado que funciona com nossos tipos
+const validateOrderForm = (data: OrderFormData): { success: boolean; errors?: any } => {
+  const errors: any = {};
+  
+  if (!data.requesterName || data.requesterName.trim().length === 0) {
+    errors.requesterName = { message: 'Nome do solicitante é obrigatório' };
+  }
+  
+  if (!data.subdistrict || data.subdistrict.trim().length === 0) {
+    errors.subdistrict = { message: 'Subdistrito é obrigatório' };
+  }
+  
+  if (!data.products || data.products.length === 0) {
+    errors.products = { message: 'Pelo menos um produto deve ser adicionado' };
+  } else {
+    data.products.forEach((product, index) => {
+      if (!product.productId) {
+        if (!errors.products) errors.products = {};
+        errors.products[index] = { productId: { message: 'Produto é obrigatório' } };
+      }
+      if (!product.quantity || (typeof product.quantity === 'number' && product.quantity < 1)) {
+        if (!errors.products) errors.products = {};
+        if (!errors.products[index]) errors.products[index] = {};
+        errors.products[index].quantity = { message: 'Quantidade deve ser maior que zero' };
+      }
+    });
+  }
+  
+  return Object.keys(errors).length === 0 ? { success: true } : { success: false, errors };
+};
 
 export function OrderRequestForm() {
   const { products } = useProducts();
@@ -42,7 +58,6 @@ export function OrderRequestForm() {
   ]);
 
   const form = useForm<OrderFormData>({
-    resolver: zodResolver(orderSchema),
     defaultValues: {
       requesterName: '',
       subdistrict: selectedSubdistrict || '',
@@ -94,10 +109,18 @@ export function OrderRequestForm() {
 
   const onSubmit = async (data: OrderFormData) => {
     try {
+      // Garantir que todas as quantidades sejam números válidos antes de enviar
+      const validatedProducts = orderProducts.map(product => ({
+        ...product,
+        quantity: typeof product.quantity === 'string' ?
+          (parseInt(product.quantity) || 1) :
+          (product.quantity || 1)
+      }));
+
       await createOrderRequest.mutateAsync({
         requesterName: data.requesterName,
         subdistrict: data.subdistrict,
-        products: orderProducts,
+        products: validatedProducts,
         observations: data.observations,
       });
 
@@ -108,7 +131,7 @@ export function OrderRequestForm() {
         products: [{ id: '1', productId: '', productName: '', quantity: 1, unitOfMeasure: 'unid.' }],
         observations: undefined,
       };
-      
+
       form.reset(resetValues);
       setOrderProducts([{ id: '1', productId: '', productName: '', quantity: 1, unitOfMeasure: 'unid.' }]);
     } catch (error) {
@@ -158,14 +181,14 @@ export function OrderRequestForm() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Subdistrito *</FormLabel>
-                    <Select 
+                    <Select
                       onValueChange={(value) => {
                         field.onChange(value);
                         // Se for supervisor, salva o subdistrito selecionado no contexto
                         if (userProfile?.role === 'supervisor_geral') {
                           setSelectedSubdistrict(value);
                         }
-                      }} 
+                      }}
                       value={field.value}
                     >
                       <FormControl>
@@ -240,8 +263,24 @@ export function OrderRequestForm() {
                           <Input
                             type="number"
                             min="1"
-                            value={product.quantity}
-                            onChange={(e) => updateProduct(product.id, 'quantity', parseInt(e.target.value) || 1)}
+                            value={product.quantity || ''}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              if (value === '') {
+                                updateProduct(product.id, 'quantity', '');
+                              } else {
+                                const numValue = parseInt(value);
+                                if (!isNaN(numValue) && numValue > 0) {
+                                  updateProduct(product.id, 'quantity', numValue);
+                                }
+                              }
+                            }}
+                            onBlur={(e) => {
+                              if (e.target.value === '' || parseInt(e.target.value) < 1) {
+                                updateProduct(product.id, 'quantity', 1);
+                              }
+                            }}
+                            placeholder="Digite a quantidade"
                           />
                         </TableCell>
                         <TableCell>
@@ -295,7 +334,7 @@ export function OrderRequestForm() {
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
-                    
+
                     <div className="space-y-4">
                       <div>
                         <label className="text-sm font-medium text-foreground mb-2 block">
@@ -317,7 +356,7 @@ export function OrderRequestForm() {
                           </SelectContent>
                         </Select>
                       </div>
-                      
+
                       <div className="grid grid-cols-2 gap-4">
                         <div>
                           <label className="text-sm font-medium text-foreground mb-2 block">
@@ -326,11 +365,27 @@ export function OrderRequestForm() {
                           <Input
                             type="number"
                             min="1"
-                            value={product.quantity}
-                            onChange={(e) => updateProduct(product.id, 'quantity', parseInt(e.target.value) || 1)}
+                            value={product.quantity || ''}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              if (value === '') {
+                                updateProduct(product.id, 'quantity', '');
+                              } else {
+                                const numValue = parseInt(value);
+                                if (!isNaN(numValue) && numValue > 0) {
+                                  updateProduct(product.id, 'quantity', numValue);
+                                }
+                              }
+                            }}
+                            onBlur={(e) => {
+                              if (e.target.value === '' || parseInt(e.target.value) < 1) {
+                                updateProduct(product.id, 'quantity', 1);
+                              }
+                            }}
+                            placeholder="Digite a quantidade"
                           />
                         </div>
-                        
+
                         <div>
                           <label className="text-sm font-medium text-foreground mb-2 block">
                             Unidade
