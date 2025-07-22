@@ -17,6 +17,7 @@ import {
   Check,
   X,
   Minus,
+  Plus,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -953,7 +954,7 @@ export function OrderManagement() {
 
       {/* Dialog de Edição */}
       <Dialog open={!!editingOrder} onOpenChange={() => setEditingOrder(null)}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Edit className="h-5 w-5" />
@@ -962,21 +963,34 @@ export function OrderManagement() {
           </DialogHeader>
           {editingOrder && (
             <div className="space-y-4">
-              <div className="bg-blue-50 p-3 rounded-md">
-                <p className="text-sm text-blue-800">
-                  <strong>Nota:</strong> Apenas pedidos com status "Pendente" podem ser editados.
+              <div className="bg-amber-50 p-3 rounded-md border border-amber-200">
+                <p className="text-sm text-amber-800">
+                  <strong>Funcionalidade em Desenvolvimento:</strong> A edição completa de pedidos está sendo implementada. 
+                  Por enquanto, você pode visualizar os detalhes e, se necessário, cancelar o pedido e criar um novo.
                 </p>
               </div>
+              
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="font-semibold">Solicitante:</label>
-                  <p>{editingOrder.requesterName}</p>
+                  <p className="text-gray-700">{editingOrder.requesterName}</p>
                 </div>
                 <div>
                   <label className="font-semibold">Subdistrito:</label>
-                  <p>{editingOrder.subdistrict}</p>
+                  <p className="text-gray-700">{editingOrder.subdistrict}</p>
+                </div>
+                <div>
+                  <label className="font-semibold">Data do Pedido:</label>
+                  <p className="text-gray-700">{format(editingOrder.requestDate, 'dd/MM/yyyy', { locale: ptBR })}</p>
+                </div>
+                <div>
+                  <label className="font-semibold">Status:</label>
+                  <Badge className={`${statusMap[editingOrder.status].color} text-white`}>
+                    {statusMap[editingOrder.status].label}
+                  </Badge>
                 </div>
               </div>
+
               <div>
                 <h4 className="font-semibold mb-2">Produtos Solicitados:</h4>
                 <div className="rounded-md border overflow-x-auto">
@@ -1000,7 +1014,26 @@ export function OrderManagement() {
                   </Table>
                 </div>
               </div>
-              <div className="flex gap-2 justify-end">
+
+              {editingOrder.observations && (
+                <div>
+                  <label className="font-semibold">Observações:</label>
+                  <p className="text-sm text-gray-600 mt-1 p-2 bg-gray-50 rounded-md">
+                    {editingOrder.observations}
+                  </p>
+                </div>
+              )}
+
+              <div className="bg-blue-50 p-3 rounded-md border border-blue-200">
+                <h5 className="font-semibold text-blue-800 mb-2">Opções Disponíveis:</h5>
+                <ul className="text-sm text-blue-700 space-y-1">
+                  <li>• Visualizar todos os detalhes do pedido</li>
+                  <li>• Cancelar o pedido se necessário</li>
+                  <li>• Criar um novo pedido com as informações atualizadas</li>
+                </ul>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-2 justify-end">
                 <Button
                   variant="outline"
                   onClick={() => setEditingOrder(null)}
@@ -1008,12 +1041,27 @@ export function OrderManagement() {
                   Fechar
                 </Button>
                 <Button
+                  variant="destructive"
                   onClick={() => {
-                    // Redirecionar para página de edição ou abrir formulário de edição
-                    window.location.href = `/order-requests?edit=${editingOrder.id}`;
+                    if (confirm('Tem certeza que deseja cancelar este pedido? Esta ação não pode ser desfeita.')) {
+                      handleStatusUpdate(editingOrder.id, 'cancelled');
+                      setEditingOrder(null);
+                    }
                   }}
+                  disabled={updateOrderStatus.isPending}
                 >
-                  Ir para Edição
+                  <XCircle className="h-4 w-4 mr-2" />
+                  Cancelar Pedido
+                </Button>
+                <Button
+                  onClick={() => {
+                    setEditingOrder(null);
+                    window.location.href = '/order-requests';
+                  }}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Criar Novo Pedido
                 </Button>
               </div>
             </div>
