@@ -6,10 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { 
-  Shield, 
-  Heart, 
-  Mail, 
+import {
+  Shield,
+  Mail,
   Lock,
   Eye,
   EyeOff,
@@ -23,7 +22,7 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   const { signIn } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -31,7 +30,7 @@ export default function Login() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    
+
     if (!email || !password) {
       setError('Por favor, preencha email e senha.');
       return;
@@ -42,7 +41,7 @@ export default function Login() {
 
     try {
       const { error } = await signIn(email, password);
-      
+
       if (error) {
         console.error('Login error:', error);
         setError(error.message);
@@ -82,9 +81,8 @@ export default function Login() {
         {/* Logo/Header */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-white rounded-full shadow-medical mb-4">
-            <div className="flex items-center gap-1">
-              <Shield className="h-6 w-6 text-primary" />
-              <Heart className="h-6 w-6 text-success" />
+            <div className="flex items-center justify-center">
+              <Shield className="h-8 w-8 text-primary" />
             </div>
           </div>
           <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">
@@ -110,7 +108,7 @@ export default function Login() {
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
-            
+
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
@@ -160,9 +158,9 @@ export default function Login() {
                 </div>
               </div>
 
-              <Button 
-                type="submit" 
-                className="w-full" 
+              <Button
+                type="submit"
+                className="w-full"
                 variant="default"
                 size="lg"
                 disabled={loading}
