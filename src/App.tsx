@@ -4,6 +4,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { NotificationToastContainer } from "@/components/ui/notification-toast";
+import { PWAUpdatePrompt, usePWA } from "@/components/PWAUpdatePrompt";
+import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "@/hooks/useTheme";
@@ -83,6 +85,8 @@ function AuthRoute({ children }: { children: React.ReactNode }) {
 }
 
 const App = () => {
+  const { needRefresh, handleUpdate, handleClose } = usePWA();
+  
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="system" storageKey="almoxarifado-theme">
@@ -91,6 +95,13 @@ const App = () => {
             <Toaster />
             <Sonner />
             <NotificationToastContainer />
+            {needRefresh && (
+              <PWAUpdatePrompt 
+                onUpdate={handleUpdate} 
+                onClose={handleClose} 
+              />
+            )}
+            <PWAInstallPrompt />
             <BrowserRouter>
             <Routes>
               <Route path="/login" element={

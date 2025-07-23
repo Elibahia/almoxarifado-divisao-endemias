@@ -177,8 +177,8 @@ export default function Products() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="col-span-1 sm:col-span-2 lg:col-span-1">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -223,15 +223,50 @@ export default function Products() {
 
       {/* Products Table */}
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
           <CardTitle className="flex items-center gap-2">
             <Package className="h-5 w-5" />
             Lista de Produtos ({filteredProducts.length})
           </CardTitle>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-xs"
+              onClick={() => {
+                // Exportar para CSV
+                const headers = ['Nome', 'Categoria', 'Lote', 'Validade', 'Estoque', 'Mínimo', 'Status'];
+                const csvContent = [
+                  headers.join(','),
+                  ...filteredProducts.map(product => [
+                    `"${product.name}"`,
+                    `"${getCategoryLabel(product.category)}"`,
+                    `"${product.batch}"`,
+                    `"${product.expirationDate.toLocaleDateString('pt-BR')}"`,
+                    product.currentQuantity,
+                    product.minimumQuantity,
+                    `"${product.status}"`
+                  ].join(','))
+                ].join('\n');
+                
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                const url = URL.createObjectURL(blob);
+                link.setAttribute('href', url);
+                link.setAttribute('download', `produtos-${new Date().toISOString().split('T')[0]}.csv`);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+              }}
+            >
+              Exportar CSV
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {/* Desktop Table */}
-          <div className="hidden lg:block rounded-md border overflow-hidden">
+          <div className="hidden md:block rounded-md border overflow-hidden">
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/50">
@@ -333,7 +368,7 @@ export default function Products() {
           </div>
 
           {/* Mobile Cards */}
-          <div className="lg:hidden space-y-4">
+          <div className="md:hidden space-y-4">
             {filteredProducts.map((product) => {
               const expirationWarning = getExpirationWarning(product.expirationDate);
               return (
