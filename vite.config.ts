@@ -9,6 +9,15 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
+    strictPort: true,
+    // Habilitar o histórico de navegação para SPA
+    historyApiFallback: true,
+  },
+  preview: {
+    port: 8080,
+    strictPort: true,
+    // Habilitar o histórico de navegação para SPA
+    historyApiFallback: true,
   },
   plugins: [
     react(),
