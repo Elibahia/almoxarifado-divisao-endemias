@@ -3,6 +3,7 @@ import { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
+import { MobileNavBar } from "@/components/MobileNavBar";
 import { Bell, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -57,7 +58,7 @@ export function Layout({ children }: LayoutProps) {
           {/* Header */}
           <header className="h-16 flex items-center justify-between px-4 md:px-6 border-b bg-card shadow-sm">
             <div className="flex items-center gap-2 md:gap-4 min-w-0 flex-1">
-              <SidebarTrigger />
+              <SidebarTrigger className="md:flex hidden" />
               <div className="min-w-0 flex-1">
                 <h1 className="text-lg md:text-xl font-semibold text-foreground truncate">
                   <span className="hidden sm:inline">Sistema de Almoxarifado</span>
@@ -112,9 +113,12 @@ export function Layout({ children }: LayoutProps) {
           </header>
 
           {/* Main Content */}
-          <main className="flex-1 p-4 md:p-6 overflow-auto">
+          <main className="flex-1 p-4 md:p-6 overflow-auto pb-20 md:pb-6">
             {children}
           </main>
+          
+          {/* Mobile Navigation Bar */}
+          <MobileNavBar />
         </div>
       </div>
     </SidebarProvider>
