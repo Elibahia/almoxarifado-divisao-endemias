@@ -620,108 +620,110 @@ export function OrderManagement() {
                             <DialogHeader>
                               <DialogTitle>Detalhes do Pedido</DialogTitle>
                             </DialogHeader>
-                            <div className="space-y-4">
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div>
-                                  <label className="font-semibold">Solicitante:</label>
-                                  <p>{selectedOrder.requesterName}</p>
+                            {selectedOrder && (
+                              <div className="space-y-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                  <div>
+                                    <label className="font-semibold">Solicitante:</label>
+                                    <p>{selectedOrder.requesterName}</p>
+                                  </div>
+                                  <div>
+                                    <label className="font-semibold">Subdistrito:</label>
+                                    <p>{selectedOrder.subdistrict}</p>
+                                  </div>
+                                  <div>
+                                    <label className="font-semibold">Data do Pedido:</label>
+                                    <p>{format(selectedOrder.requestDate, 'dd/MM/yyyy', { locale: ptBR })}</p>
+                                  </div>
+                                  <div>
+                                    <label className="font-semibold">Status:</label>
+                                    <Badge className={`${statusMap[selectedOrder.status].color} text-white`}>
+                                      {statusMap[selectedOrder.status].label}
+                                    </Badge>
+                                  </div>
                                 </div>
-                                <div>
-                                  <label className="font-semibold">Subdistrito:</label>
-                                  <p>{selectedOrder.subdistrict}</p>
-                                </div>
-                                <div>
-                                  <label className="font-semibold">Data do Pedido:</label>
-                                  <p>{format(selectedOrder.requestDate, 'dd/MM/yyyy', { locale: ptBR })}</p>
-                                </div>
-                                <div>
-                                  <label className="font-semibold">Status:</label>
-                                  <Badge className={`${statusMap[selectedOrder.status].color} text-white`}>
-                                    {statusMap[selectedOrder.status].label}
-                                  </Badge>
-                                </div>
-                              </div>
 
-                              <div>
-                                <h4 className="font-semibold mb-2">Produtos Solicitados:</h4>
-                                <div className="rounded-md border overflow-x-auto">
-                                  <Table>
-                                    <TableHeader>
-                                      <TableRow>
-                                        <TableHead>Produto</TableHead>
-                                        <TableHead>Quantidade</TableHead>
-                                        <TableHead>Unidade</TableHead>
-                                      </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                      {selectedOrder.items.map((item) => (
-                                        <TableRow key={item.id}>
-                                          <TableCell>{item.productName}</TableCell>
-                                          <TableCell>{item.quantity}</TableCell>
-                                          <TableCell>{item.unitOfMeasure}</TableCell>
+                                <div>
+                                  <h4 className="font-semibold mb-2">Produtos Solicitados:</h4>
+                                  <div className="rounded-md border overflow-x-auto">
+                                    <Table>
+                                      <TableHeader>
+                                        <TableRow>
+                                          <TableHead>Produto</TableHead>
+                                          <TableHead>Quantidade</TableHead>
+                                          <TableHead>Unidade</TableHead>
                                         </TableRow>
-                                      ))}
-                                    </TableBody>
-                                  </Table>
+                                      </TableHeader>
+                                      <TableBody>
+                                        {selectedOrder.items.map((item) => (
+                                          <TableRow key={item.id}>
+                                            <TableCell>{item.productName}</TableCell>
+                                            <TableCell>{item.quantity}</TableCell>
+                                            <TableCell>{item.unitOfMeasure}</TableCell>
+                                          </TableRow>
+                                        ))}
+                                      </TableBody>
+                                    </Table>
+                                  </div>
                                 </div>
-                              </div>
 
-                              {selectedOrder.observations && (
-                                <div>
-                                  <label className="font-semibold">Observações:</label>
-                                  <p className="text-sm text-muted-foreground mt-1">
-                                    {selectedOrder.observations}
-                                  </p>
-                                </div>
-                              )}
-                              
-                              {/* Status Actions */}
-                              <div className="flex flex-col gap-2 pt-4">
-                                {selectedOrder.status === 'pending' && (
-                                  <>
+                                {selectedOrder.observations && (
+                                  <div>
+                                    <label className="font-semibold">Observações:</label>
+                                    <p className="text-sm text-muted-foreground mt-1">
+                                      {selectedOrder.observations}
+                                    </p>
+                                  </div>
+                                )}
+                                
+                                {/* Status Actions */}
+                                <div className="flex flex-col gap-2 pt-4">
+                                  {selectedOrder.status === 'pending' && (
+                                    <>
+                                      <Button
+                                        onClick={() => handleStatusUpdate(selectedOrder.id, 'approved')}
+                                        disabled={updateOrderStatus.isPending}
+                                        className="bg-blue-600 hover:bg-blue-700 w-full"
+                                      >
+                                        <CheckCircle className="h-4 w-4 mr-2" />
+                                        Aprovar
+                                      </Button>
+                                      <Button
+                                        onClick={() => handleStatusUpdate(selectedOrder.id, 'cancelled')}
+                                        disabled={updateOrderStatus.isPending}
+                                        variant="destructive"
+                                        className="w-full"
+                                      >
+                                        <XCircle className="h-4 w-4 mr-2" />
+                                        Cancelar
+                                      </Button>
+                                    </>
+                                  )}
+                                  
+                                  {selectedOrder.status === 'approved' && (
                                     <Button
-                                      onClick={() => handleStatusUpdate(selectedOrder.id, 'approved')}
+                                      onClick={() => handleStatusUpdate(selectedOrder.id, 'delivered')}
                                       disabled={updateOrderStatus.isPending}
-                                      className="bg-blue-600 hover:bg-blue-700 w-full"
+                                      className="bg-green-600 hover:bg-green-700 w-full"
+                                    >
+                                      <Truck className="h-4 w-4 mr-2" />
+                                      Marcar como Entregue
+                                    </Button>
+                                  )}
+                                  
+                                  {selectedOrder.status === 'delivered' && (
+                                    <Button
+                                      onClick={() => handleStatusUpdate(selectedOrder.id, 'received')}
+                                      disabled={updateOrderStatus.isPending}
+                                      className="bg-emerald-600 hover:bg-emerald-700 w-full"
                                     >
                                       <CheckCircle className="h-4 w-4 mr-2" />
-                                      Aprovar
+                                      Confirmar Recebimento
                                     </Button>
-                                    <Button
-                                      onClick={() => handleStatusUpdate(selectedOrder.id, 'cancelled')}
-                                      disabled={updateOrderStatus.isPending}
-                                      variant="destructive"
-                                      className="w-full"
-                                    >
-                                      <XCircle className="h-4 w-4 mr-2" />
-                                      Cancelar
-                                    </Button>
-                                  </>
-                                )}
-                                
-                                {selectedOrder.status === 'approved' && (
-                                  <Button
-                                    onClick={() => handleStatusUpdate(selectedOrder.id, 'delivered')}
-                                    disabled={updateOrderStatus.isPending}
-                                    className="bg-green-600 hover:bg-green-700 w-full"
-                                  >
-                                    <Truck className="h-4 w-4 mr-2" />
-                                    Marcar como Entregue
-                                  </Button>
-                                )}
-                                
-                                {selectedOrder.status === 'delivered' && (
-                                  <Button
-                                    onClick={() => handleStatusUpdate(selectedOrder.id, 'received')}
-                                    disabled={updateOrderStatus.isPending}
-                                    className="bg-emerald-600 hover:bg-emerald-700 w-full"
-                                  >
-                                    <CheckCircle className="h-4 w-4 mr-2" />
-                                    Confirmar Recebimento
-                                  </Button>
-                                )}
+                                  )}
+                                </div>
                               </div>
-                            </div>
+                            )}
                           </DialogContent>
                         </Dialog>
 
