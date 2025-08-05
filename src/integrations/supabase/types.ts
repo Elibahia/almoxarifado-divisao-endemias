@@ -52,6 +52,66 @@ export type Database = {
           },
         ]
       }
+      backup_user_profiles_final: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          id: string | null
+          is_active: boolean | null
+          name: string | null
+          role: Database["public"]["Enums"]["user_role"] | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          name?: string | null
+          role?: Database["public"]["Enums"]["user_role"] | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          name?: string | null
+          role?: Database["public"]["Enums"]["user_role"] | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      backup_user_profiles_temp: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          id: string | null
+          is_active: boolean | null
+          name: string | null
+          role: Database["public"]["Enums"]["user_role"] | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          name?: string | null
+          role?: Database["public"]["Enums"]["user_role"] | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          name?: string | null
+          role?: Database["public"]["Enums"]["user_role"] | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       order_request_items: {
         Row: {
           created_at: string
@@ -106,6 +166,8 @@ export type Database = {
           delivered_at: string | null
           id: string
           observations: string | null
+          received_at: string | null
+          received_by: string | null
           request_date: string
           requester_name: string
           status: string
@@ -120,6 +182,8 @@ export type Database = {
           delivered_at?: string | null
           id?: string
           observations?: string | null
+          received_at?: string | null
+          received_by?: string | null
           request_date?: string
           requester_name: string
           status?: string
@@ -134,6 +198,8 @@ export type Database = {
           delivered_at?: string | null
           id?: string
           observations?: string | null
+          received_at?: string | null
+          received_by?: string | null
           request_date?: string
           requester_name?: string
           status?: string
@@ -272,6 +338,33 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_create_user: {
+        Args: {
+          user_email: string
+          user_name: string
+          user_role: string
+          user_password: string
+        }
+        Returns: Json
+      }
+      admin_create_user_safe: {
+        Args: {
+          user_email: string
+          user_name: string
+          user_role: string
+          user_password: string
+        }
+        Returns: Json
+      }
+      admin_create_user_temp: {
+        Args: {
+          user_email: string
+          user_name: string
+          user_role: string
+          user_password: string
+        }
+        Returns: Json
+      }
       has_access: {
         Args: { user_id?: string }
         Returns: boolean

@@ -59,7 +59,17 @@ export function useUsers() {
         throw error;
       }
 
-      const result = data as { success: boolean; error?: string; user_id?: string };
+      // Handle the case where data might be boolean or the expected object
+      let result: { success: boolean; error?: string; user_id?: string };
+      
+      if (typeof data === 'boolean') {
+        result = { success: data };
+      } else if (data && typeof data === 'object') {
+        result = data as { success: boolean; error?: string; user_id?: string };
+      } else {
+        result = { success: false, error: 'Resposta inválida do servidor' };
+      }
+
       console.log('Resultado processado:', result);
 
       if (!result.success) {

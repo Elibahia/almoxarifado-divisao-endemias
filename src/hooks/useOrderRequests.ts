@@ -106,7 +106,7 @@ export function useOrderRequests() {
         order_request_id: order.id,
         product_id: product.productId,
         product_name: product.productName,
-        quantity: product.quantity,
+        quantity: Number(product.quantity), // Convert to number to ensure type safety
         unit_of_measure: product.unitOfMeasure,
       }));
 
