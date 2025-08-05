@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -66,7 +67,7 @@ export function usePWA() {
 
   const handleUpdate = async () => {
     if (updateSW) {
-      await updateSW(true);
+      await updateSW();
       setNeedRefresh(false);
     }
   };
