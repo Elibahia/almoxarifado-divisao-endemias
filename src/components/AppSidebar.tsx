@@ -71,7 +71,7 @@ const menuItems = [
     title: "Usuários",
     url: "/users",
     icon: Users,
-    roles: ["admin"]
+    roles: ["admin"] // Apenas admin tem acesso
   },
   {
     title: "Configurações",
