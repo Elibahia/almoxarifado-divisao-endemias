@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useAlerts } from "@/hooks/useAlerts";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { useIsMobile, useChromeStability } from "@/hooks/use-mobile-detection";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,6 +20,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 interface LayoutProps {
   children: ReactNode;
@@ -29,6 +31,8 @@ export function Layout({ children }: LayoutProps) {
   const { signOut, userProfile } = useAuth();
   const { toast } = useToast();
   const { alerts = [] } = useAlerts();
+  const { isMobile } = useIsMobile();
+  const { isChromeMobile, hasViewportIssues } = useChromeStability();
   
   const alertCount = alerts.filter(alert => !alert.is_read).length;
 
@@ -51,7 +55,18 @@ export function Layout({ children }: LayoutProps) {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-background">
+      <div 
+        className={cn(
+          "min-h-screen flex w-full bg-background",
+          // Fix para Chrome mobile
+          isChromeMobile && "min-h-[100dvh]",
+          hasViewportIssues && "pb-safe"
+        )}
+        style={{
+          // Fallback para problemas de height no Chrome mobile
+          minHeight: isChromeMobile ? '100dvh' : '100vh'
+        }}
+      >
         <AppSidebar />
         
         <div className="flex-1 flex flex-col">
@@ -78,7 +93,11 @@ export function Layout({ children }: LayoutProps) {
               <Button 
                 variant="ghost" 
                 size="icon" 
-                className="relative" 
+                className={cn(
+                  "relative",
+                  // Melhor área de toque para mobile
+                  isMobile && "touch-target active:scale-95"
+                )}
                 onClick={() => navigate('/alerts')}
               >
                 <Bell className="h-5 w-5" />
@@ -95,7 +114,13 @@ export function Layout({ children }: LayoutProps) {
               {/* User Menu */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon">
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    className={cn(
+                      isMobile && "touch-target active:scale-95"
+                    )}
+                  >
                     <User className="h-5 w-5" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -113,7 +138,19 @@ export function Layout({ children }: LayoutProps) {
           </header>
 
           {/* Main Content */}
-          <main className="flex-1 p-4 md:p-6 overflow-auto pb-20 md:pb-6">
+          <main 
+            className={cn(
+              "flex-1 p-4 md:p-6 overflow-auto",
+              // Ajuste do padding bottom para mobile
+              isMobile ? "pb-24" : "pb-6"
+            )}
+            style={{
+              // Fix para scroll no Chrome mobile
+              WebkitOverflowScrolling: 'touch',
+              // Fix para viewport issues
+              paddingBottom: isMobile && hasViewportIssues ? '6rem' : undefined
+            }}
+          >
             {children}
           </main>
           

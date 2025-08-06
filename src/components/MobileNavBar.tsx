@@ -1,3 +1,4 @@
+
 import { useLocation, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { 
@@ -15,6 +16,8 @@ import {
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { useIsMobile, useChromeStability } from "@/hooks/use-mobile-detection";
+import { useEffect, useState } from "react";
 
 // Definição dos itens de menu com ícones
 const navItems = [
@@ -53,28 +56,106 @@ const navItems = [
 export function MobileNavBar() {
   const location = useLocation();
   const { userProfile } = useAuth();
+  const { isMobile } = useIsMobile();
+  const { isChromeMobile, hasViewportIssues } = useChromeStability();
+  const [isVisible, setIsVisible] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
 
   // Filtra os itens de menu com base na função do usuário
   const filteredNavItems = navItems.filter(item => 
     userProfile && item.roles.includes(userProfile.role)
   );
 
-  // Limita a 5 itens para a barra de navegação
+  // Limita a 4 itens para a barra de navegação
   const visibleNavItems = filteredNavItems.slice(0, 4);
 
+  // Controle de visibilidade para Chrome mobile
+  useEffect(() => {
+    if (!isMobile || !isChromeMobile) return;
+
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      
+      // Esconder barra ao rolar para baixo, mostrar ao rolar para cima
+      if (currentScrollY > lastScrollY && currentScrollY > 100) {
+        setIsVisible(false);
+      } else {
+        setIsVisible(true);
+      }
+      
+      setLastScrollY(currentScrollY);
+    };
+
+    // Throttle do scroll para melhor performance
+    let ticking = false;
+    const throttledHandleScroll = () => {
+      if (!ticking) {
+        requestAnimationFrame(() => {
+          handleScroll();
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+
+    window.addEventListener('scroll', throttledHandleScroll, { passive: true });
+    
+    return () => {
+      window.removeEventListener('scroll', throttledHandleScroll);
+    };
+  }, [isMobile, isChromeMobile, lastScrollY]);
+
+  // Log para debug
+  useEffect(() => {
+    console.log('MobileNavBar state:', {
+      isMobile,
+      isChromeMobile,
+      hasViewportIssues,
+      isVisible,
+      userRole: userProfile?.role,
+      itemCount: visibleNavItems.length
+    });
+  }, [isMobile, isChromeMobile, hasViewportIssues, isVisible, userProfile]);
+
+  // Não renderizar se não for mobile
+  if (!isMobile) {
+    return null;
+  }
+
   return (
-    <div className="md:hidden fixed bottom-0 left-0 right-0 bg-background border-t z-50 shadow-lg animate-in slide-in-from-bottom duration-300">
+    <div 
+      className={cn(
+        "md:hidden fixed bottom-0 left-0 right-0 bg-background border-t z-50 shadow-lg transition-transform duration-300",
+        isVisible ? "translate-y-0" : "translate-y-full",
+        hasViewportIssues && "pb-safe-area-inset-bottom" // Para Chrome mobile com problemas de viewport
+      )}
+      style={{
+        // Fallback para problemas de viewport no Chrome mobile
+        paddingBottom: hasViewportIssues ? 'env(safe-area-inset-bottom, 16px)' : undefined,
+        // Fix para problemas de z-index no Chrome mobile
+        zIndex: isChromeMobile ? 9999 : 50
+      }}
+    >
       <div className="flex items-center justify-between px-2 max-w-md mx-auto w-full relative">
         {visibleNavItems.map((item) => (
           <Link 
             key={item.title}
             to={item.url}
             className={cn(
-              "flex flex-col items-center py-3 px-3 min-w-[4rem] transition-colors duration-200",
+              "flex flex-col items-center py-3 px-3 min-w-[4rem] transition-colors duration-200 touch-target",
               location.pathname === item.url 
                 ? "text-primary" 
-                : "text-muted-foreground hover:text-foreground"
+                : "text-muted-foreground hover:text-foreground",
+              // Melhor área de toque para Chrome mobile
+              "active:bg-muted/50 active:scale-95"
             )}
+            // Prevenir zoom no Chrome mobile
+            onTouchStart={(e) => {
+              e.currentTarget.style.transform = 'scale(0.95)';
+            }}
+            onTouchEnd={(e) => {
+              e.currentTarget.style.transform = 'scale(1)';
+            }}
           >
             <div className={cn(
               "p-1.5 rounded-full mb-1 relative",
@@ -90,7 +171,18 @@ export function MobileNavBar() {
         ))}
         
         {/* Menu button for additional items */}
-        <SidebarTrigger className="flex flex-col items-center py-3 px-3 min-w-[4rem] text-muted-foreground hover:text-foreground transition-colors duration-200">
+        <SidebarTrigger 
+          className={cn(
+            "flex flex-col items-center py-3 px-3 min-w-[4rem] text-muted-foreground hover:text-foreground transition-colors duration-200 touch-target",
+            "active:bg-muted/50 active:scale-95"
+          )}
+          onTouchStart={(e) => {
+            e.currentTarget.style.transform = 'scale(0.95)';
+          }}
+          onTouchEnd={(e) => {
+            e.currentTarget.style.transform = 'scale(1)';
+          }}
+        >
           <div className="p-1 rounded-full mb-1">
             <Menu className="h-5 w-5" />
           </div>
