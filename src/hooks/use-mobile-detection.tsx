@@ -11,73 +11,104 @@ export function useIsMobile() {
   React.useEffect(() => {
     // Função para detectar dispositivos móveis de forma mais robusta
     const detectMobile = () => {
-      const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera
-      const mobileRegex = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i
-      const isMobileUA = mobileRegex.test(userAgent)
-      
-      // Verificar largura da tela
-      const isScreenMobile = window.innerWidth < MOBILE_BREAKPOINT
-      
-      // Verificar se é um dispositivo touch
-      const isTouchDevice = 'ontouchstart' in window || 
-                           navigator.maxTouchPoints > 0 || 
-                           (navigator as any).msMaxTouchPoints > 0
-      
-      // Chrome mobile específico
-      const isChromeAndroid = /Chrome/.test(userAgent) && /Android/.test(userAgent)
-      const isChromeiOS = /CriOS/.test(userAgent)
-      
-      console.log('Mobile detection:', {
-        userAgent,
-        isMobileUA,
-        isScreenMobile,
-        isTouchDevice,
-        isChromeAndroid,
-        isChromeiOS,
-        innerWidth: window.innerWidth
-      })
-      
-      return isMobileUA || isScreenMobile || isChromeAndroid || isChromeiOS
+      try {
+        const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera
+        const mobileRegex = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i
+        const isMobileUA = mobileRegex.test(userAgent)
+        
+        // Verificar largura da tela
+        const isScreenMobile = window.innerWidth < MOBILE_BREAKPOINT
+        
+        // Verificar se é um dispositivo touch
+        const isTouchDevice = 'ontouchstart' in window || 
+                             navigator.maxTouchPoints > 0 || 
+                             (navigator as any).msMaxTouchPoints > 0
+        
+        // Chrome mobile específico
+        const isChromeAndroid = /Chrome/.test(userAgent) && /Android/.test(userAgent)
+        const isChromeiOS = /CriOS/.test(userAgent)
+        const isSafari = /Safari/.test(userAgent) && !/Chrome/.test(userAgent)
+        const isFirefoxMobile = /Firefox/.test(userAgent) && isMobileUA
+        
+        console.log('Mobile detection:', {
+          userAgent,
+          isMobileUA,
+          isScreenMobile,
+          isTouchDevice,
+          isChromeAndroid,
+          isChromeiOS,
+          isSafari,
+          isFirefoxMobile,
+          innerWidth: window.innerWidth
+        })
+        
+        return isMobileUA || isScreenMobile || isChromeAndroid || isChromeiOS
+      } catch (error) {
+        console.error('Error detecting mobile:', error)
+        return window.innerWidth < MOBILE_BREAKPOINT
+      }
     }
 
     const detectTouch = () => {
-      return 'ontouchstart' in window || 
-             navigator.maxTouchPoints > 0 || 
-             (navigator as any).msMaxTouchPoints > 0
+      try {
+        return 'ontouchstart' in window || 
+               navigator.maxTouchPoints > 0 || 
+               (navigator as any).msMaxTouchPoints > 0
+      } catch (error) {
+        console.error('Error detecting touch:', error)
+        return false
+      }
     }
 
     const updateDetection = () => {
-      setIsMobile(detectMobile())
-      setIsTouch(detectTouch())
+      try {
+        setIsMobile(detectMobile())
+        setIsTouch(detectTouch())
+      } catch (error) {
+        console.error('Error updating detection:', error)
+      }
     }
 
-    // Detecção inicial
-    updateDetection()
+    // Detecção inicial com delay para garantir que o DOM esteja pronto
+    const initialTimeout = setTimeout(updateDetection, 100)
 
-    // Listener para mudanças de orientação/tamanho
     const handleResize = () => {
       // Pequeno delay para aguardar a mudança de orientação
-      setTimeout(updateDetection, 100)
+      clearTimeout(initialTimeout)
+      setTimeout(updateDetection, 150)
     }
 
     const handleOrientationChange = () => {
-      // Delay maior para orientação porque Chrome mobile pode demorar
-      setTimeout(updateDetection, 300)
+      // Delay maior para orientação porque browsers mobile podem demorar
+      setTimeout(updateDetection, 500)
     }
 
-    window.addEventListener('resize', handleResize)
-    window.addEventListener('orientationchange', handleOrientationChange)
+    // Event listeners
+    window.addEventListener('resize', handleResize, { passive: true })
+    window.addEventListener('orientationchange', handleOrientationChange, { passive: true })
 
     // Para Chrome mobile - detectar mudanças de viewport
-    if ('visualViewport' in window) {
-      window.visualViewport?.addEventListener('resize', handleResize)
+    if ('visualViewport' in window && window.visualViewport) {
+      window.visualViewport.addEventListener('resize', handleResize, { passive: true })
     }
 
+    // Listener para mudanças de foco da página
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        setTimeout(updateDetection, 200)
+      }
+    }
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange, { passive: true })
+
     return () => {
+      clearTimeout(initialTimeout)
       window.removeEventListener('resize', handleResize)
       window.removeEventListener('orientationchange', handleOrientationChange)
-      if ('visualViewport' in window) {
-        window.visualViewport?.removeEventListener('resize', handleResize)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      
+      if ('visualViewport' in window && window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', handleResize)
       }
     }
   }, [])
@@ -89,46 +120,120 @@ export function useIsMobile() {
 export function useChromeStability() {
   const [isChromeMobile, setIsChromeMobile] = React.useState(false)
   const [hasViewportIssues, setHasViewportIssues] = React.useState(false)
+  const [isStandalone, setIsStandalone] = React.useState(false)
 
   React.useEffect(() => {
-    const userAgent = navigator.userAgent
-    const isChrome = /Chrome/.test(userAgent)
-    const isAndroid = /Android/.test(userAgent)
-    const isiOS = /iPhone|iPad|iPod/.test(userAgent)
-    const isCriOS = /CriOS/.test(userAgent)
-    
-    setIsChromeMobile((isChrome && isAndroid) || isCriOS)
+    try {
+      const userAgent = navigator.userAgent
+      const isChrome = /Chrome/.test(userAgent)
+      const isAndroid = /Android/.test(userAgent)
+      const isiOS = /iPhone|iPad|iPod/.test(userAgent)
+      const isCriOS = /CriOS/.test(userAgent)
+      const isEdge = /Edg/.test(userAgent)
+      
+      setIsChromeMobile((isChrome && isAndroid) || isCriOS || isEdge)
+      
+      // Detectar se está em modo standalone (PWA)
+      const standalone = window.matchMedia('(display-mode: standalone)').matches || 
+                        (window.navigator as any).standalone === true ||
+                        document.referrer.includes('android-app://')
+      
+      setIsStandalone(standalone)
 
-    // Detectar problemas de viewport específicos do Chrome mobile
-    const checkViewport = () => {
-      const vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0)
-      const vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0)
+      // Detectar problemas de viewport específicos do Chrome mobile
+      const checkViewport = () => {
+        try {
+          const vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0)
+          const vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0)
+          
+          // Chrome mobile pode ter problemas com vh units
+          const heightDiff = Math.abs(window.innerHeight - document.documentElement.clientHeight)
+          const hasVhIssues = heightDiff > 100 // Tolerância de 100px
+          
+          setHasViewportIssues(hasVhIssues)
+          
+          console.log('Viewport check:', { 
+            vw, 
+            vh, 
+            hasVhIssues, 
+            heightDiff,
+            innerHeight: window.innerHeight, 
+            clientHeight: document.documentElement.clientHeight,
+            isStandalone: standalone
+          })
+        } catch (error) {
+          console.error('Error checking viewport:', error)
+        }
+      }
+
+      checkViewport()
       
-      // Chrome mobile pode ter problemas com vh units
-      const hasVhIssues = window.innerHeight !== document.documentElement.clientHeight
-      setHasViewportIssues(hasVhIssues)
+      const handleViewportChange = () => {
+        setTimeout(checkViewport, 200)
+      }
+
+      window.addEventListener('resize', handleViewportChange, { passive: true })
       
-      console.log('Viewport check:', { vw, vh, hasVhIssues, innerHeight: window.innerHeight, clientHeight: document.documentElement.clientHeight })
+      if ('visualViewport' in window && window.visualViewport) {
+        window.visualViewport.addEventListener('resize', handleViewportChange, { passive: true })
+      }
+
+      return () => {
+        window.removeEventListener('resize', handleViewportChange)
+        if ('visualViewport' in window && window.visualViewport) {
+          window.visualViewport.removeEventListener('resize', handleViewportChange)
+        }
+      }
+    } catch (error) {
+      console.error('Error in Chrome stability hook:', error)
+    }
+  }, [])
+
+  return { isChromeMobile, hasViewportIssues, isStandalone }
+}
+
+// Hook para PWA
+export function usePWAStability() {
+  const [isPWA, setIsPWA] = React.useState(false)
+  const [installPromptAvailable, setInstallPromptAvailable] = React.useState(false)
+  const [swUpdateAvailable, setSwUpdateAvailable] = React.useState(false)
+
+  React.useEffect(() => {
+    // Detectar se está rodando como PWA
+    const checkPWA = () => {
+      const standalone = window.matchMedia('(display-mode: standalone)').matches ||
+                        (window.navigator as any).standalone === true ||
+                        document.referrer.includes('android-app://')
+      setIsPWA(standalone)
     }
 
-    checkViewport()
-    
-    const handleViewportChange = () => {
-      setTimeout(checkViewport, 100)
+    checkPWA()
+
+    // Listener para prompt de instalação
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault()
+      setInstallPromptAvailable(true)
     }
 
-    window.addEventListener('resize', handleViewportChange)
-    if ('visualViewport' in window) {
-      window.visualViewport?.addEventListener('resize', handleViewportChange)
+    // Listener para updates do service worker
+    const handleSWUpdate = () => {
+      setSwUpdateAvailable(true)
+    }
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
+    
+    // Verificar se há service worker ativo
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.addEventListener('controllerchange', handleSWUpdate)
     }
 
     return () => {
-      window.removeEventListener('resize', handleViewportChange)
-      if ('visualViewport' in window) {
-        window.visualViewport?.removeEventListener('resize', handleViewportChange)
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.removeEventListener('controllerchange', handleSWUpdate)
       }
     }
   }, [])
 
-  return { isChromeMobile, hasViewportIssues }
+  return { isPWA, installPromptAvailable, swUpdateAvailable }
 }

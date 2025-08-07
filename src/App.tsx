@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -23,6 +22,7 @@ import Settings from "./pages/Settings";
 import OrderRequests from "./pages/OrderRequests";
 import OrderManagement from "./pages/OrderManagement";
 import NotFound from "./pages/NotFound";
+import { ChromeMobileDebug } from "@/components/ChromeMobileDebug";
 
 // Create QueryClient instance outside of component to prevent recreation
 const queryClient = new QueryClient({
@@ -95,6 +95,7 @@ const App = () => {
             <Toaster />
             <Sonner />
             <NotificationToastContainer />
+            <ChromeMobileDebug />
             {needRefresh && (
               <PWAUpdatePrompt 
                 onUpdate={handleUpdate} 

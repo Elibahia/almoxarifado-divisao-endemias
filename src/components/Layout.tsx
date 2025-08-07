@@ -1,5 +1,5 @@
 
-import { ReactNode } from 'react';
+import { ReactNode, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
@@ -10,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useAlerts } from "@/hooks/useAlerts";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { useIsMobile, useChromeStability } from "@/hooks/use-mobile-detection";
+import { useIsMobile, useChromeStability, usePWAStability } from "@/hooks/use-mobile-detection";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,9 +32,44 @@ export function Layout({ children }: LayoutProps) {
   const { toast } = useToast();
   const { alerts = [] } = useAlerts();
   const { isMobile } = useIsMobile();
-  const { isChromeMobile, hasViewportIssues } = useChromeStability();
+  const { isChromeMobile, hasViewportIssues, isStandalone } = useChromeStability();
+  const { isPWA } = usePWAStability();
   
   const alertCount = alerts.filter(alert => !alert.is_read).length;
+
+  // Fix para problemas de navegação mobile
+  useEffect(() => {
+    if (isMobile) {
+      // Prevenir zoom acidental no mobile
+      const metaViewport = document.querySelector('meta[name=viewport]');
+      if (metaViewport) {
+        metaViewport.setAttribute('content', 
+          'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover'
+        );
+      }
+
+      // Fix para altura em dispositivos mobile
+      const updateVH = () => {
+        try {
+          const vh = window.innerHeight * 0.01;
+          document.documentElement.style.setProperty('--vh', `${vh}px`);
+        } catch (error) {
+          console.error('Error setting VH:', error);
+        }
+      };
+
+      updateVH();
+      window.addEventListener('resize', updateVH, { passive: true });
+      window.addEventListener('orientationchange', () => {
+        setTimeout(updateVH, 300);
+      }, { passive: true });
+
+      return () => {
+        window.removeEventListener('resize', updateVH);
+        window.removeEventListener('orientationchange', updateVH);
+      };
+    }
+  }, [isMobile]);
 
   const handleSignOut = async () => {
     try {
@@ -45,6 +80,7 @@ export function Layout({ children }: LayoutProps) {
       });
       navigate('/login');
     } catch (error) {
+      console.error('Sign out error:', error);
       toast({
         title: "Erro ao sair",
         description: "Tente novamente.",
@@ -53,25 +89,43 @@ export function Layout({ children }: LayoutProps) {
     }
   };
 
+  const handleNavigation = (path: string) => {
+    try {
+      navigate(path);
+    } catch (error) {
+      console.error('Navigation error:', error);
+      // Fallback para navegação manual
+      window.location.href = path;
+    }
+  };
+
   return (
     <SidebarProvider>
       <div 
         className={cn(
-          "min-h-screen flex w-full bg-background",
-          // Fix para Chrome mobile
-          isChromeMobile && "min-h-[100dvh]",
-          hasViewportIssues && "pb-safe"
+          "min-h-screen flex w-full bg-background relative",
+          // Fix para Chrome mobile e PWA
+          (isChromeMobile || isPWA) && "min-h-[100dvh]",
+          hasViewportIssues && "pb-safe-area-inset-bottom",
+          // Prevenção de overflow horizontal no mobile
+          isMobile && "overflow-x-hidden"
         )}
         style={{
           // Fallback para problemas de height no Chrome mobile
-          minHeight: isChromeMobile ? '100dvh' : '100vh'
+          minHeight: (isChromeMobile || isPWA) ? 'calc(var(--vh, 1vh) * 100)' : '100vh',
+          // Fix para safe area em dispositivos com notch
+          paddingTop: isStandalone ? 'env(safe-area-inset-top, 0px)' : undefined
         }}
       >
         <AppSidebar />
         
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col min-w-0">
           {/* Header */}
-          <header className="h-16 flex items-center justify-between px-4 md:px-6 border-b bg-card shadow-sm">
+          <header className={cn(
+            "h-16 flex items-center justify-between px-4 md:px-6 border-b bg-card shadow-sm relative z-40",
+            // Fix para header no PWA
+            isStandalone && "pt-safe-area-inset-top"
+          )}>
             <div className="flex items-center gap-2 md:gap-4 min-w-0 flex-1">
               <SidebarTrigger className="md:flex hidden" />
               <div className="min-w-0 flex-1">
@@ -96,9 +150,9 @@ export function Layout({ children }: LayoutProps) {
                 className={cn(
                   "relative",
                   // Melhor área de toque para mobile
-                  isMobile && "touch-target active:scale-95"
+                  isMobile && "touch-manipulation active:scale-95 transition-transform"
                 )}
-                onClick={() => navigate('/alerts')}
+                onClick={() => handleNavigation('/alerts')}
               >
                 <Bell className="h-5 w-5" />
                 {alertCount > 0 && (
@@ -118,7 +172,7 @@ export function Layout({ children }: LayoutProps) {
                     variant="ghost" 
                     size="icon"
                     className={cn(
-                      isMobile && "touch-target active:scale-95"
+                      isMobile && "touch-manipulation active:scale-95 transition-transform"
                     )}
                   >
                     <User className="h-5 w-5" />
@@ -140,18 +194,24 @@ export function Layout({ children }: LayoutProps) {
           {/* Main Content */}
           <main 
             className={cn(
-              "flex-1 p-4 md:p-6 overflow-auto",
+              "flex-1 p-4 md:p-6 overflow-auto relative",
               // Ajuste do padding bottom para mobile
-              isMobile ? "pb-24" : "pb-6"
+              isMobile ? "pb-24" : "pb-6",
+              // Fix para scroll no mobile
+              isMobile && "overscroll-behavior-y-contain"
             )}
             style={{
-              // Fix para scroll no Chrome mobile
+              // Fix para scroll no Chrome mobile e PWA
               WebkitOverflowScrolling: 'touch',
               // Fix para viewport issues
-              paddingBottom: isMobile && hasViewportIssues ? '6rem' : undefined
+              paddingBottom: isMobile && hasViewportIssues ? 'calc(6rem + env(safe-area-inset-bottom, 0px))' : undefined,
+              // Altura mínima para conteúdo
+              minHeight: isMobile ? 'calc(100vh - 8rem)' : 'auto'
             }}
           >
-            {children}
+            <div className="w-full max-w-full">
+              {children}
+            </div>
           </main>
           
           {/* Mobile Navigation Bar */}
