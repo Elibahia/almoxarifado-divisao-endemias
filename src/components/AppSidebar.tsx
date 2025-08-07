@@ -71,7 +71,7 @@ const menuItems = [
     title: "Usuários",
     url: "/users",
     icon: Users,
-    roles: ["admin"] // Apenas admin tem acesso
+    roles: ["admin"]
   },
   {
     title: "Configurações",
@@ -85,14 +85,51 @@ export function AppSidebar() {
   const location = useLocation()
   const { userProfile } = useAuth()
 
-  // Filtra os itens de menu com verificação de segurança
+  // Verificação mais robusta dos itens de menu
   const filteredMenuItems = menuItems.filter(item => {
-    // Verificação de segurança para evitar erros
-    if (!item || !item.roles || !Array.isArray(item.roles) || !item.icon || !item.title || !item.url) {
-      console.warn('Invalid menu item:', item);
+    try {
+      // Verificações de segurança mais detalhadas
+      if (!item) {
+        console.warn('Menu item is null or undefined:', item);
+        return false;
+      }
+
+      if (typeof item !== 'object') {
+        console.warn('Menu item is not an object:', item);
+        return false;
+      }
+
+      if (!item.roles || !Array.isArray(item.roles)) {
+        console.warn('Menu item roles are invalid:', item);
+        return false;
+      }
+
+      if (!item.icon || typeof item.icon !== 'function') {
+        console.warn('Menu item icon is invalid:', item);
+        return false;
+      }
+
+      if (!item.title || typeof item.title !== 'string') {
+        console.warn('Menu item title is invalid:', item);
+        return false;
+      }
+
+      if (!item.url || typeof item.url !== 'string') {
+        console.warn('Menu item url is invalid:', item);
+        return false;
+      }
+
+      // Verificar se o userProfile existe e tem role
+      if (!userProfile || !userProfile.role) {
+        console.warn('User profile or role is missing:', userProfile);
+        return false;
+      }
+
+      return item.roles.includes(userProfile.role);
+    } catch (error) {
+      console.error('Error filtering menu item:', error, item);
       return false;
     }
-    return userProfile && item.roles.includes(userProfile.role);
   });
 
   return (
@@ -102,27 +139,39 @@ export function AppSidebar() {
           <SidebarGroupLabel>Menu Principal</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {filteredMenuItems.map((item) => {
-                // Verificação adicional antes de renderizar
-                if (!item || !item.icon || !item.title || !item.url) {
+              {filteredMenuItems.map((item, index) => {
+                try {
+                  // Verificação adicional antes de renderizar
+                  if (!item || !item.icon || !item.title || !item.url) {
+                    console.warn('Invalid menu item at render:', item);
+                    return null;
+                  }
+
+                  const IconComponent = item.icon;
+
+                  // Verificar se IconComponent é uma função válida
+                  if (typeof IconComponent !== 'function') {
+                    console.warn('IconComponent is not a function:', IconComponent);
+                    return null;
+                  }
+
+                  return (
+                    <SidebarMenuItem key={`${item.title}-${item.url}-${index}`}>
+                      <SidebarMenuButton 
+                        asChild 
+                        isActive={location.pathname === item.url}
+                      >
+                        <Link to={item.url}>
+                          <IconComponent />
+                          <span>{item.title}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                } catch (error) {
+                  console.error('Error rendering menu item:', error, item);
                   return null;
                 }
-
-                const IconComponent = item.icon;
-
-                return (
-                  <SidebarMenuItem key={`${item.title}-${item.url}`}>
-                    <SidebarMenuButton 
-                      asChild 
-                      isActive={location.pathname === item.url}
-                    >
-                      <Link to={item.url}>
-                        <IconComponent />
-                        <span>{item.title}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
               })}
             </SidebarMenu>
           </SidebarGroupContent>

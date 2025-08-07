@@ -9,22 +9,23 @@ export function useIsMobile() {
   const [isTouch, setIsTouch] = React.useState<boolean>(false)
 
   React.useEffect(() => {
-    // Função para detectar dispositivos móveis de forma mais robusta
     const detectMobile = () => {
       try {
-        const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera
+        if (!window || !navigator) {
+          console.warn('Window or navigator not available');
+          return false;
+        }
+
+        const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera || '';
         const mobileRegex = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i
         const isMobileUA = mobileRegex.test(userAgent)
         
-        // Verificar largura da tela
         const isScreenMobile = window.innerWidth < MOBILE_BREAKPOINT
         
-        // Verificar se é um dispositivo touch
         const isTouchDevice = 'ontouchstart' in window || 
                              navigator.maxTouchPoints > 0 || 
                              (navigator as any).msMaxTouchPoints > 0
         
-        // Chrome mobile específico
         const isChromeAndroid = /Chrome/.test(userAgent) && /Android/.test(userAgent)
         const isChromeiOS = /CriOS/.test(userAgent)
         const isSafari = /Safari/.test(userAgent) && !/Chrome/.test(userAgent)
@@ -45,12 +46,15 @@ export function useIsMobile() {
         return isMobileUA || isScreenMobile || isChromeAndroid || isChromeiOS
       } catch (error) {
         console.error('Error detecting mobile:', error)
-        return window.innerWidth < MOBILE_BREAKPOINT
+        return window?.innerWidth ? window.innerWidth < MOBILE_BREAKPOINT : false
       }
     }
 
     const detectTouch = () => {
       try {
+        if (!window || !navigator) {
+          return false;
+        }
         return 'ontouchstart' in window || 
                navigator.maxTouchPoints > 0 || 
                (navigator as any).msMaxTouchPoints > 0
@@ -69,54 +73,67 @@ export function useIsMobile() {
       }
     }
 
-    // Detecção inicial com delay para garantir que o DOM esteja pronto
     const initialTimeout = setTimeout(updateDetection, 100)
 
     const handleResize = () => {
-      // Pequeno delay para aguardar a mudança de orientação
-      clearTimeout(initialTimeout)
-      setTimeout(updateDetection, 150)
+      try {
+        clearTimeout(initialTimeout)
+        setTimeout(updateDetection, 150)
+      } catch (error) {
+        console.error('Error handling resize:', error)
+      }
     }
 
     const handleOrientationChange = () => {
-      // Delay maior para orientação porque browsers mobile podem demorar
-      setTimeout(updateDetection, 500)
+      try {
+        setTimeout(updateDetection, 500)
+      } catch (error) {
+        console.error('Error handling orientation change:', error)
+      }
     }
 
-    // Event listeners
-    window.addEventListener('resize', handleResize, { passive: true })
-    window.addEventListener('orientationchange', handleOrientationChange, { passive: true })
-
-    // Para Chrome mobile - detectar mudanças de viewport
-    if ('visualViewport' in window && window.visualViewport) {
-      window.visualViewport.addEventListener('resize', handleResize, { passive: true })
-    }
-
-    // Listener para mudanças de foco da página
     const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        setTimeout(updateDetection, 200)
+      try {
+        if (!document.hidden) {
+          setTimeout(updateDetection, 200)
+        }
+      } catch (error) {
+        console.error('Error handling visibility change:', error)
       }
     }
-    
-    document.addEventListener('visibilitychange', handleVisibilityChange, { passive: true })
 
-    return () => {
-      clearTimeout(initialTimeout)
-      window.removeEventListener('resize', handleResize)
-      window.removeEventListener('orientationchange', handleOrientationChange)
-      document.removeEventListener('visibilitychange', handleVisibilityChange)
-      
+    try {
+      window.addEventListener('resize', handleResize, { passive: true })
+      window.addEventListener('orientationchange', handleOrientationChange, { passive: true })
+      document.addEventListener('visibilitychange', handleVisibilityChange, { passive: true })
+
       if ('visualViewport' in window && window.visualViewport) {
-        window.visualViewport.removeEventListener('resize', handleResize)
+        window.visualViewport.addEventListener('resize', handleResize, { passive: true })
       }
+
+      return () => {
+        clearTimeout(initialTimeout)
+        try {
+          window.removeEventListener('resize', handleResize)
+          window.removeEventListener('orientationchange', handleOrientationChange)
+          document.removeEventListener('visibilitychange', handleVisibilityChange)
+          
+          if ('visualViewport' in window && window.visualViewport) {
+            window.visualViewport.removeEventListener('resize', handleResize)
+          }
+        } catch (error) {
+          console.error('Error removing event listeners:', error)
+        }
+      }
+    } catch (error) {
+      console.error('Error setting up event listeners:', error)
+      return () => {}
     }
   }, [])
 
   return { isMobile, isTouch }
 }
 
-// Hook para detectar problemas específicos do Chrome mobile
 export function useChromeStability() {
   const [isChromeMobile, setIsChromeMobile] = React.useState(false)
   const [hasViewportIssues, setHasViewportIssues] = React.useState(false)
@@ -124,7 +141,12 @@ export function useChromeStability() {
 
   React.useEffect(() => {
     try {
-      const userAgent = navigator.userAgent
+      if (!navigator || !window) {
+        console.warn('Navigator or window not available for Chrome stability check');
+        return;
+      }
+
+      const userAgent = navigator.userAgent || ''
       const isChrome = /Chrome/.test(userAgent)
       const isAndroid = /Android/.test(userAgent)
       const isiOS = /iPhone|iPad|iPod/.test(userAgent)
@@ -133,22 +155,23 @@ export function useChromeStability() {
       
       setIsChromeMobile((isChrome && isAndroid) || isCriOS || isEdge)
       
-      // Detectar se está em modo standalone (PWA)
       const standalone = window.matchMedia('(display-mode: standalone)').matches || 
                         (window.navigator as any).standalone === true ||
                         document.referrer.includes('android-app://')
       
       setIsStandalone(standalone)
 
-      // Detectar problemas de viewport específicos do Chrome mobile
       const checkViewport = () => {
         try {
+          if (!window || !document) {
+            return;
+          }
+
           const vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0)
           const vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0)
           
-          // Chrome mobile pode ter problemas com vh units
           const heightDiff = Math.abs(window.innerHeight - document.documentElement.clientHeight)
-          const hasVhIssues = heightDiff > 100 // Tolerância de 100px
+          const hasVhIssues = heightDiff > 100
           
           setHasViewportIssues(hasVhIssues)
           
@@ -179,9 +202,13 @@ export function useChromeStability() {
       }
 
       return () => {
-        window.removeEventListener('resize', handleViewportChange)
-        if ('visualViewport' in window && window.visualViewport) {
-          window.visualViewport.removeEventListener('resize', handleViewportChange)
+        try {
+          window.removeEventListener('resize', handleViewportChange)
+          if ('visualViewport' in window && window.visualViewport) {
+            window.visualViewport.removeEventListener('resize', handleViewportChange)
+          }
+        } catch (error) {
+          console.error('Error cleaning up viewport listeners:', error)
         }
       }
     } catch (error) {
@@ -192,46 +219,66 @@ export function useChromeStability() {
   return { isChromeMobile, hasViewportIssues, isStandalone }
 }
 
-// Hook para PWA
 export function usePWAStability() {
   const [isPWA, setIsPWA] = React.useState(false)
   const [installPromptAvailable, setInstallPromptAvailable] = React.useState(false)
   const [swUpdateAvailable, setSwUpdateAvailable] = React.useState(false)
 
   React.useEffect(() => {
-    // Detectar se está rodando como PWA
-    const checkPWA = () => {
-      const standalone = window.matchMedia('(display-mode: standalone)').matches ||
-                        (window.navigator as any).standalone === true ||
-                        document.referrer.includes('android-app://')
-      setIsPWA(standalone)
-    }
-
-    checkPWA()
-
-    // Listener para prompt de instalação
-    const handleBeforeInstallPrompt = (e: Event) => {
-      e.preventDefault()
-      setInstallPromptAvailable(true)
-    }
-
-    // Listener para updates do service worker
-    const handleSWUpdate = () => {
-      setSwUpdateAvailable(true)
-    }
-
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
-    
-    // Verificar se há service worker ativo
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.addEventListener('controllerchange', handleSWUpdate)
-    }
-
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.removeEventListener('controllerchange', handleSWUpdate)
+    try {
+      if (!window) {
+        console.warn('Window not available for PWA stability check');
+        return;
       }
+
+      const checkPWA = () => {
+        try {
+          const standalone = window.matchMedia('(display-mode: standalone)').matches ||
+                            (window.navigator as any).standalone === true ||
+                            document.referrer.includes('android-app://')
+          setIsPWA(standalone)
+        } catch (error) {
+          console.error('Error checking PWA status:', error)
+        }
+      }
+
+      checkPWA()
+
+      const handleBeforeInstallPrompt = (e: Event) => {
+        try {
+          e.preventDefault()
+          setInstallPromptAvailable(true)
+        } catch (error) {
+          console.error('Error handling install prompt:', error)
+        }
+      }
+
+      const handleSWUpdate = () => {
+        try {
+          setSwUpdateAvailable(true)
+        } catch (error) {
+          console.error('Error handling SW update:', error)
+        }
+      }
+
+      window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
+      
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.addEventListener('controllerchange', handleSWUpdate)
+      }
+
+      return () => {
+        try {
+          window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
+          if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.removeEventListener('controllerchange', handleSWUpdate)
+          }
+        } catch (error) {
+          console.error('Error cleaning up PWA listeners:', error)
+        }
+      }
+    } catch (error) {
+      console.error('Error in PWA stability hook:', error)
     }
   }, [])
 
