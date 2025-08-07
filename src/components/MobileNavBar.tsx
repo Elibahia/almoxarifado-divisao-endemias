@@ -1,3 +1,4 @@
+
 import { useLocation, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { 
@@ -61,13 +62,16 @@ export function MobileNavBar() {
   const [isVisible, setIsVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
 
-  // Filtra os itens de menu com base na função do usuário
-  const filteredNavItems = navItems.filter(item => 
-    userProfile && item.roles.includes(userProfile.role)
-  );
+  // Filtra os itens de menu com base na função do usuário - com verificação de segurança
+  const filteredNavItems = navItems.filter(item => {
+    if (!item || !item.roles || !Array.isArray(item.roles)) return false;
+    return userProfile && item.roles.includes(userProfile.role);
+  });
 
-  // Limita a 4 itens para a barra de navegação
-  const visibleNavItems = filteredNavItems.slice(0, 4);
+  // Limita a 4 itens para a barra de navegação - com verificação adicional
+  const visibleNavItems = filteredNavItems.slice(0, 4).filter(item => {
+    return item && item.icon && item.title && item.url;
+  });
 
   // Controle de visibilidade otimizado
   const handleScroll = useCallback(() => {
@@ -146,12 +150,14 @@ export function MobileNavBar() {
       isVisible,
       userRole: userProfile?.role,
       itemCount: visibleNavItems.length,
-      pathname: location.pathname
+      pathname: location.pathname,
+      filteredItems: filteredNavItems.length,
+      hasValidItems: visibleNavItems.every(item => item && item.icon)
     });
-  }, [isMobile, isChromeMobile, hasViewportIssues, isStandalone, isPWA, isVisible, userProfile, visibleNavItems.length, location.pathname]);
+  }, [isMobile, isChromeMobile, hasViewportIssues, isStandalone, isPWA, isVisible, userProfile, visibleNavItems.length, location.pathname, filteredNavItems.length]);
 
-  // Não renderizar se não for mobile
-  if (!isMobile) {
+  // Não renderizar se não for mobile ou não houver itens válidos
+  if (!isMobile || !visibleNavItems.length) {
     return null;
   }
 
@@ -175,38 +181,48 @@ export function MobileNavBar() {
       }}
     >
       <div className="flex items-center justify-between px-2 max-w-md mx-auto w-full relative">
-        {visibleNavItems.map((item) => (
-          <Link 
-            key={item.title}
-            to={item.url}
-            className={cn(
-              "flex flex-col items-center py-3 px-3 min-w-[4rem] transition-all duration-200",
-              "touch-manipulation select-none",
-              location.pathname === item.url 
-                ? "text-primary" 
-                : "text-muted-foreground hover:text-foreground",
-              // Melhor área de toque para mobile
-              "active:bg-muted/50 active:scale-95",
-              // Fix para problemas de foco
-              "focus:outline-none focus:ring-2 focus:ring-primary/20 focus:ring-offset-2 rounded-md"
-            )}
-            onTouchStart={handleTouchStart}
-            onTouchEnd={handleTouchEnd}
-            // Prevenção de double tap zoom
-            onTouchMove={(e) => e.preventDefault()}
-          >
-            <div className={cn(
-              "p-1.5 rounded-full mb-1 relative transition-colors",
-              location.pathname === item.url ? "bg-primary/10" : ""
-            )}>
-              <item.icon className="h-5 w-5" />
-              {location.pathname === item.url && (
-                <span className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-primary rounded-full" />
+        {visibleNavItems.map((item) => {
+          // Verificação adicional de segurança para cada item
+          if (!item || !item.icon || !item.title || !item.url) {
+            console.warn('Invalid nav item:', item);
+            return null;
+          }
+
+          const IconComponent = item.icon;
+          
+          return (
+            <Link 
+              key={`${item.title}-${item.url}`}
+              to={item.url}
+              className={cn(
+                "flex flex-col items-center py-3 px-3 min-w-[4rem] transition-all duration-200",
+                "touch-manipulation select-none",
+                location.pathname === item.url 
+                  ? "text-primary" 
+                  : "text-muted-foreground hover:text-foreground",
+                // Melhor área de toque para mobile
+                "active:bg-muted/50 active:scale-95",
+                // Fix para problemas de foco
+                "focus:outline-none focus:ring-2 focus:ring-primary/20 focus:ring-offset-2 rounded-md"
               )}
-            </div>
-            <span className="text-xs font-medium truncate max-w-12">{item.title}</span>
-          </Link>
-        ))}
+              onTouchStart={handleTouchStart}
+              onTouchEnd={handleTouchEnd}
+              // Prevenção de double tap zoom
+              onTouchMove={(e) => e.preventDefault()}
+            >
+              <div className={cn(
+                "p-1.5 rounded-full mb-1 relative transition-colors",
+                location.pathname === item.url ? "bg-primary/10" : ""
+              )}>
+                <IconComponent className="h-5 w-5" />
+                {location.pathname === item.url && (
+                  <span className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-primary rounded-full" />
+                )}
+              </div>
+              <span className="text-xs font-medium truncate max-w-12">{item.title}</span>
+            </Link>
+          );
+        })}
         
         {/* Menu button for additional items */}
         <SidebarTrigger 

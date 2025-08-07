@@ -85,9 +85,15 @@ export function AppSidebar() {
   const location = useLocation()
   const { userProfile } = useAuth()
 
-  const filteredMenuItems = menuItems.filter(item => 
-    userProfile && item.roles.includes(userProfile.role)
-  )
+  // Filtra os itens de menu com verificação de segurança
+  const filteredMenuItems = menuItems.filter(item => {
+    // Verificação de segurança para evitar erros
+    if (!item || !item.roles || !Array.isArray(item.roles) || !item.icon || !item.title || !item.url) {
+      console.warn('Invalid menu item:', item);
+      return false;
+    }
+    return userProfile && item.roles.includes(userProfile.role);
+  });
 
   return (
     <Sidebar collapsible="icon">
@@ -96,19 +102,28 @@ export function AppSidebar() {
           <SidebarGroupLabel>Menu Principal</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {filteredMenuItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton 
-                    asChild 
-                    isActive={location.pathname === item.url}
-                  >
-                    <Link to={item.url}>
-                      <item.icon />
-                      <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {filteredMenuItems.map((item) => {
+                // Verificação adicional antes de renderizar
+                if (!item || !item.icon || !item.title || !item.url) {
+                  return null;
+                }
+
+                const IconComponent = item.icon;
+
+                return (
+                  <SidebarMenuItem key={`${item.title}-${item.url}`}>
+                    <SidebarMenuButton 
+                      asChild 
+                      isActive={location.pathname === item.url}
+                    >
+                      <Link to={item.url}>
+                        <IconComponent />
+                        <span>{item.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
