@@ -83,25 +83,51 @@ export function useOrderRequests() {
       products: OrderProduct[];
       observations?: string;
     }) => {
-      const { data: user } = await supabase.auth.getUser();
+      console.log('🚀 Iniciando criação de pedido:', orderData);
+      
+      // Verificar autenticação
+      const { data: user, error: userError } = await supabase.auth.getUser();
+      
+      if (userError) {
+        console.error('❌ Erro de autenticação:', userError);
+        throw new Error('Usuário não autenticado: ' + userError.message);
+      }
+      
+      if (!user.user) {
+        console.error('❌ Usuário não encontrado');
+        throw new Error('Usuário não autenticado');
+      }
+      
+      console.log('✅ Usuário autenticado:', user.user.id);
       
       // Criar data local para evitar problemas de fuso horário
       const now = new Date();
       const localDate = new Date(now.getTime() - (now.getTimezoneOffset() * 60000));
       
+      console.log('📅 Data do pedido:', localDate.toISOString().split('T')[0]);
+      
+      const orderPayload = {
+        requester_name: orderData.requesterName,
+        subdistrict: orderData.subdistrict,
+        observations: orderData.observations,
+        request_date: localDate.toISOString().split('T')[0], // Formato YYYY-MM-DD
+        created_by: user.user.id,
+      };
+      
+      console.log('📦 Payload do pedido:', orderPayload);
+      
       const { data: order, error: orderError } = await supabase
         .from('order_requests')
-        .insert({
-          requester_name: orderData.requesterName,
-          subdistrict: orderData.subdistrict,
-          observations: orderData.observations,
-          request_date: localDate.toISOString().split('T')[0], // Formato YYYY-MM-DD
-          created_by: user.user?.id,
-        })
+        .insert(orderPayload)
         .select()
         .single();
 
-      if (orderError) throw orderError;
+      if (orderError) {
+        console.error('❌ Erro ao criar pedido:', orderError);
+        throw orderError;
+      }
+      
+      console.log('✅ Pedido criado com sucesso:', order);
 
       const items = orderData.products.map(product => ({
         order_request_id: order.id,
@@ -110,12 +136,19 @@ export function useOrderRequests() {
         quantity: Number(product.quantity), // Convert to number to ensure type safety
         unit_of_measure: product.unitOfMeasure,
       }));
+      
+      console.log('📋 Items do pedido:', items);
 
       const { error: itemsError } = await supabase
         .from('order_request_items')
         .insert(items);
 
-      if (itemsError) throw itemsError;
+      if (itemsError) {
+        console.error('❌ Erro ao criar items:', itemsError);
+        throw itemsError;
+      }
+      
+      console.log('✅ Items criados com sucesso');
 
       return order;
     },

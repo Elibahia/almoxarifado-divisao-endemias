@@ -96,8 +96,8 @@ export function SupervisorOrderManagement() {
                 <SelectContent>
                   <SelectItem value="all">Todos os subdistritos</SelectItem>
                   {SUBDISTRICTS.map((subdistrict) => (
-                  <SelectItem key={subdistrict} value={subdistrict}>
-                    {subdistrict}
+                  <SelectItem key={subdistrict.value} value={subdistrict.value}>
+                    {subdistrict.label}
                     </SelectItem>
                   ))}
                 </SelectContent>

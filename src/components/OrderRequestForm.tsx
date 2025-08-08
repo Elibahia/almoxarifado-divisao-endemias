@@ -26,6 +26,15 @@ export function OrderRequestForm() {
   const { validateOrderForm } = useOrderValidation();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const form = useForm<OrderFormData>({
+    defaultValues: {
+      requesterName: '',
+      subdistrict: selectedSubdistrict || '',
+      products: [{ id: '1', productId: '', productName: '', quantity: 1, unitOfMeasure: 'unid.' }],
+      observations: undefined,
+    },
+  });
+
   const {
     orderProducts,
     addProductRow,
@@ -35,16 +44,8 @@ export function OrderRequestForm() {
   } = useOrderProducts({
     products,
     onProductsChange: (products) => {
-      // This will be handled by the form
-    },
-  });
-
-  const form = useForm<OrderFormData>({
-    defaultValues: {
-      requesterName: '',
-      subdistrict: selectedSubdistrict || '',
-      products: orderProducts,
-      observations: undefined,
+      // Sync with form
+      form.setValue('products', products);
     },
   });
 
@@ -56,19 +57,42 @@ export function OrderRequestForm() {
     setIsSubmitting(true);
     
     try {
+      // Use current orderProducts state instead of form data
+      const formDataWithCurrentProducts = {
+        ...data,
+        products: orderProducts
+      };
+      
       // Validate form data
-      const validation = validateOrderForm(data);
+      const validation = validateOrderForm(formDataWithCurrentProducts);
       if (!validation.success) {
-        console.error('Validation errors:', validation.errors);
+        console.error('Validation errors:', JSON.stringify(validation.errors, null, 2));
+        
+        // Show specific error messages
+        if (validation.errors?.requesterName) {
+          console.error('Nome do solicitante:', validation.errors.requesterName);
+        }
+        if (validation.errors?.subdistrict) {
+          console.error('Subdistrito:', validation.errors.subdistrict);
+        }
+        if (validation.errors?.products) {
+          if (typeof validation.errors.products === 'string') {
+            console.error('Produtos:', validation.errors.products);
+          } else {
+            console.error('Erros nos produtos:', JSON.stringify(validation.errors.products, null, 2));
+          }
+        }
+        
+        alert('Por favor, corrija os erros no formulário antes de enviar.');
         return;
       }
 
       // Create order request
       await createOrderRequest.mutateAsync({
-        requesterName: data.requesterName,
-        subdistrict: data.subdistrict,
-        products: data.products,
-        observations: data.observations,
+        requesterName: formDataWithCurrentProducts.requesterName,
+        subdistrict: formDataWithCurrentProducts.subdistrict,
+        products: formDataWithCurrentProducts.products,
+        observations: formDataWithCurrentProducts.observations,
       });
 
       // Reset form
