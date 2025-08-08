@@ -85,9 +85,14 @@ export function AppSidebar() {
   const location = useLocation()
   const { userProfile } = useAuth()
 
+  // Verificações de segurança para evitar erros
+  if (!location) {
+    return null
+  }
+
   // Filtrar itens do menu baseado na role do usuário
   const filteredMenuItems = menuItems.filter(item => {
-    if (!userProfile?.role) return false
+    if (!userProfile?.role || !item?.roles) return false
     return item.roles.includes(userProfile.role)
   })
 
@@ -99,7 +104,14 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {filteredMenuItems.map((item) => {
+                // Verificações de segurança para cada item
+                if (!item || !item.icon || !item.url || !item.title) {
+                  console.warn('Item de menu inválido:', item)
+                  return null
+                }
+
                 const IconComponent = item.icon
+                
                 return (
                   <SidebarMenuItem key={item.url}>
                     <SidebarMenuButton 
