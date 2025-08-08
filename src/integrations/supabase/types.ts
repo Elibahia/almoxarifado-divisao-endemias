@@ -52,66 +52,6 @@ export type Database = {
           },
         ]
       }
-      backup_user_profiles_final: {
-        Row: {
-          created_at: string | null
-          email: string | null
-          id: string | null
-          is_active: boolean | null
-          name: string | null
-          role: Database["public"]["Enums"]["user_role"] | null
-          updated_at: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          email?: string | null
-          id?: string | null
-          is_active?: boolean | null
-          name?: string | null
-          role?: Database["public"]["Enums"]["user_role"] | null
-          updated_at?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          email?: string | null
-          id?: string | null
-          is_active?: boolean | null
-          name?: string | null
-          role?: Database["public"]["Enums"]["user_role"] | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      backup_user_profiles_temp: {
-        Row: {
-          created_at: string | null
-          email: string | null
-          id: string | null
-          is_active: boolean | null
-          name: string | null
-          role: Database["public"]["Enums"]["user_role"] | null
-          updated_at: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          email?: string | null
-          id?: string | null
-          is_active?: boolean | null
-          name?: string | null
-          role?: Database["public"]["Enums"]["user_role"] | null
-          updated_at?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          email?: string | null
-          id?: string | null
-          is_active?: boolean | null
-          name?: string | null
-          role?: Database["public"]["Enums"]["user_role"] | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
       order_request_items: {
         Row: {
           created_at: string

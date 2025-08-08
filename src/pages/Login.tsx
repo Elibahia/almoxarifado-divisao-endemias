@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,6 +16,7 @@ import {
   AlertCircle
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { sanitizeInput, validateEmail } from "@/utils/sanitize";
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
@@ -22,6 +24,7 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [attemptCount, setAttemptCount] = useState(0);
 
   const { signIn } = useAuth();
   const navigate = useNavigate();
@@ -31,19 +34,37 @@ export default function Login() {
     e.preventDefault();
     setError(null);
 
-    if (!email || !password) {
+    // Security: Sanitize inputs
+    const sanitizedEmail = sanitizeInput(email.toLowerCase().trim());
+    const sanitizedPassword = password; // Don't sanitize password as it may contain special chars
+
+    // Basic validation
+    if (!sanitizedEmail || !sanitizedPassword) {
       setError('Por favor, preencha email e senha.');
       return;
     }
 
+    // Email validation
+    if (!validateEmail(sanitizedEmail)) {
+      setError('Por favor, insira um email válido.');
+      return;
+    }
+
+    // Rate limiting: Prevent brute force attempts
+    if (attemptCount >= 5) {
+      setError('Muitas tentativas de login. Aguarde alguns minutos antes de tentar novamente.');
+      return;
+    }
+
     setLoading(true);
-    console.log('Submitting login form with email:', email);
+    console.log('Submitting login form with email:', sanitizedEmail);
 
     try {
-      const { error } = await signIn(email, password);
+      const { error } = await signIn(sanitizedEmail, sanitizedPassword);
 
       if (error) {
         console.error('Login error:', error);
+        setAttemptCount(prev => prev + 1);
         setError(error.message);
         toast({
           title: "Erro ao fazer login",
@@ -52,6 +73,7 @@ export default function Login() {
         });
       } else {
         console.log('Login successful, redirecting...');
+        setAttemptCount(0); // Reset attempt count on successful login
         toast({
           title: "Login realizado com sucesso!",
           description: "Redirecionando...",
@@ -63,6 +85,7 @@ export default function Login() {
       }
     } catch (error: any) {
       console.error('Login exception:', error);
+      setAttemptCount(prev => prev + 1);
       const errorMessage = "Erro inesperado durante o login. Tente novamente.";
       setError(errorMessage);
       toast({
@@ -73,6 +96,10 @@ export default function Login() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleEmailChange = (value: string) => {
+    setEmail(sanitizeInput(value));
   };
 
   return (
@@ -109,6 +136,15 @@ export default function Login() {
               </Alert>
             )}
 
+            {attemptCount >= 3 && (
+              <Alert className="mb-4">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  Por segurança, certifique-se de que está usando as credenciais corretas.
+                </AlertDescription>
+              </Alert>
+            )}
+
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
@@ -117,12 +153,14 @@ export default function Login() {
                   <Input
                     id="email"
                     type="email"
-                    placeholder="resumovetorial@gmail.com"
+                    placeholder="seu@email.com"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => handleEmailChange(e.target.value)}
                     className="pl-10"
                     required
                     disabled={loading}
+                    maxLength={100}
+                    autoComplete="email"
                   />
                 </div>
               </div>
@@ -140,6 +178,7 @@ export default function Login() {
                     className="pl-10 pr-10"
                     required
                     disabled={loading}
+                    autoComplete="current-password"
                   />
                   <Button
                     type="button"
@@ -163,7 +202,7 @@ export default function Login() {
                 className="w-full"
                 variant="default"
                 size="lg"
-                disabled={loading}
+                disabled={loading || attemptCount >= 5}
               >
                 {loading ? "Entrando..." : "Entrar"}
               </Button>

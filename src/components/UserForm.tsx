@@ -18,6 +18,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { UserPlus } from "lucide-react";
+import { sanitizeInput, validateEmail, validatePassword } from "@/utils/sanitize";
+import { useToast } from "@/hooks/use-toast";
 
 interface UserFormData {
   email: string;
@@ -39,12 +41,44 @@ export function UserForm({ onSubmit }: UserFormProps) {
     password: '',
   });
   const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     
-    const result = await onSubmit(formData);
+    // Security: Sanitize all inputs
+    const sanitizedData = {
+      email: sanitizeInput(formData.email.toLowerCase()),
+      name: sanitizeInput(formData.name),
+      role: formData.role, // Role is from select, already safe
+      password: formData.password, // Don't sanitize password as it may contain special chars
+    };
+    
+    // Validate email format
+    if (!validateEmail(sanitizedData.email)) {
+      toast({
+        title: "Erro de validação",
+        description: "Email inválido",
+        variant: "destructive",
+      });
+      setLoading(false);
+      return;
+    }
+    
+    // Validate password strength
+    const passwordValidation = validatePassword(sanitizedData.password);
+    if (!passwordValidation.isValid) {
+      toast({
+        title: "Erro de validação",
+        description: passwordValidation.message,
+        variant: "destructive",
+      });
+      setLoading(false);
+      return;
+    }
+    
+    const result = await onSubmit(sanitizedData);
     
     if (result.success) {
       setFormData({ email: '', name: '', role: 'gestor_almoxarifado', password: '' });
@@ -52,6 +86,12 @@ export function UserForm({ onSubmit }: UserFormProps) {
     }
     
     setLoading(false);
+  };
+
+  const handleInputChange = (field: keyof UserFormData, value: string) => {
+    // Apply basic sanitization on input change
+    const sanitizedValue = field === 'password' ? value : sanitizeInput(value);
+    setFormData(prev => ({ ...prev, [field]: sanitizedValue }));
   };
 
   return (
@@ -76,7 +116,7 @@ export function UserForm({ onSubmit }: UserFormProps) {
               id="email"
               type="email"
               value={formData.email}
-              onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+              onChange={(e) => handleInputChange('email', e.target.value)}
               required
             />
           </div>
@@ -86,8 +126,9 @@ export function UserForm({ onSubmit }: UserFormProps) {
             <Input
               id="name"
               value={formData.name}
-              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+              onChange={(e) => handleInputChange('name', e.target.value)}
               required
+              maxLength={100}
             />
           </div>
 
@@ -97,10 +138,10 @@ export function UserForm({ onSubmit }: UserFormProps) {
               id="password"
               type="password"
               value={formData.password}
-              onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
+              onChange={(e) => handleInputChange('password', e.target.value)}
               required
-              minLength={6}
-              placeholder="Mínimo 6 caracteres"
+              minLength={8}
+              placeholder="Mínimo 8 caracteres com letras e números"
             />
           </div>
           

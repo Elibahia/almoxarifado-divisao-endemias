@@ -75,8 +75,9 @@ export function useAuth() {
       if (error) {
         console.error('Error fetching profile:', error);
         if (error.code === 'PGRST116') {
-          console.log('Profile not found, attempting to create...');
-          await createMissingProfile(user);
+          console.log('Profile not found, user needs to contact administrator');
+          // SECURITY FIX: Remove automatic profile creation
+          // Only authorized admins should create profiles
         }
       } else {
         console.log('Profile loaded:', profile);
@@ -84,33 +85,6 @@ export function useAuth() {
       }
     } catch (err) {
       console.error('Profile fetch error:', err);
-    }
-  };
-
-  const createMissingProfile = async (user: User) => {
-    try {
-      const role = user.email === 'resumovetorial@gmail.com' ? 'admin' : 'gestor_almoxarifado';
-      
-      const { data: profile, error } = await supabase
-        .from('user_profiles')
-        .insert({
-          id: user.id,
-          email: user.email || '',
-          name: user.user_metadata?.name || user.email || 'Usuário',
-          role: role,
-          is_active: true
-        })
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Error creating missing profile:', error);
-      } else {
-        console.log('Missing profile created:', profile);
-        setUserProfile(profile);
-      }
-    } catch (err) {
-      console.error('Exception creating missing profile:', err);
     }
   };
 
