@@ -144,7 +144,7 @@ export default function MovementForm({ isOpen, onClose, onSuccess }: MovementFor
       form.reset();
       onSuccess();
       onClose();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error in onSubmit:', error);
       toast({
         variant: "destructive",

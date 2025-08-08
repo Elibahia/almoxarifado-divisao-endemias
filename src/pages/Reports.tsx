@@ -43,9 +43,10 @@ export default function Reports() {
   const [movementFilters, setMovementFilters] = useState<ReportFilters>({});
   const [expirationFilters, setExpirationFilters] = useState<ReportFilters>({ expirationDays: 30 });
 
+  type ReportRow = Record<string, string | number | null>;
   const [currentReport, setCurrentReport] = useState<{
     type: string;
-    data: any[];
+    data: ReportRow[];
   } | null>(null);
 
   // Estatísticas gerais

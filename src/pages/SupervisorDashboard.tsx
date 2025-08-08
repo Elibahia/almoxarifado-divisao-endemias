@@ -180,13 +180,14 @@ export default function SupervisorDashboard() {
           <CardContent>
             <div className="space-y-3">
               {userOrders.slice(0, 5).map((order) => {
-                const statusConfig = {
+                const statusConfig = ({
                   pending: { label: 'Pendente', color: 'bg-yellow-500', icon: Clock },
                   approved: { label: 'Aprovado', color: 'bg-blue-500', icon: CheckCircle },
                   delivered: { label: 'Entregue', color: 'bg-green-500', icon: Truck },
+                  received: { label: 'Recebido', color: 'bg-emerald-600', icon: CheckCircle },
                   cancelled: { label: 'Cancelado', color: 'bg-red-500', icon: XCircle },
-                }[order.status];
-                
+                } as const)[order.status] || { label: 'Desconhecido', color: 'bg-muted', icon: Package };
+
                 const StatusIcon = statusConfig.icon;
                 
                 return (

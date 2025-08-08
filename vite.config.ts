@@ -25,7 +25,7 @@ export default defineConfig(({ mode }) => ({
     componentTagger(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'shield-favicon.svg', 'robots.txt', 'offline.html'],
+      includeAssets: ['favicon.ico', 'shield-favicon.svg', 'robots.txt', 'offline.html', 'almoxarifado_endemias_192x192.png', 'almoxarifado_endemias_512x512.png'],
       manifest: {
         name: 'Almoxarifado - Divisão de Endemias',
         short_name: 'Almoxarifado',
@@ -39,9 +39,19 @@ export default defineConfig(({ mode }) => ({
         icons: [
           {
             src: 'shield-favicon.svg',
-            sizes: '64x64 192x192 512x512',
+            sizes: '64x64 512x512',
             type: 'image/svg+xml',
             purpose: 'any maskable'
+          },
+          {
+            src: 'almoxarifado_endemias_192x192.png',
+            sizes: '192x192',
+            type: 'image/png'
+          },
+          {
+            src: 'almoxarifado_endemias_512x512.png',
+            sizes: '512x512',
+            type: 'image/png'
           }
         ],
         categories: ['business', 'productivity'],
@@ -49,6 +59,11 @@ export default defineConfig(({ mode }) => ({
       },
       devOptions: {
         enabled: true,
+      },
+      workbox: {
+        clientsClaim: true,
+        skipWaiting: true,
+        cleanupOutdatedCaches: true,
       },
     }),
   ].filter(Boolean),

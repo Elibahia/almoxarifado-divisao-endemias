@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { User, Session } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseWithRetry, networkStatus } from '@/integrations/supabase/client';
 
 export interface UserProfile {
   id: string;
@@ -18,12 +18,25 @@ export function useAuth() {
   const [session, setSession] = useState<Session | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isOnline, setIsOnline] = useState(networkStatus.getStatus());
 
   useEffect(() => {
     let initialized = false;
+    let profileFetchTimeout: NodeJS.Timeout;
+
+    // Monitor network status
+    const unsubscribeNetwork = networkStatus.subscribe((online) => {
+      setIsOnline(online);
+      if (online && user && !userProfile) {
+        // Retry profile fetch when back online
+        setTimeout(() => {
+          fetchUserProfile(user);
+        }, 1000);
+      }
+    });
 
     // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+    const { data: { subscription } } = supabaseWithRetry.auth.onAuthStateChange(
       (event, session) => {
         console.log('Auth state changed:', event, session?.user?.email);
         setSession(session);
@@ -31,9 +44,9 @@ export function useAuth() {
         
         if (session?.user && !initialized) {
           // Only fetch profile data after auth state is established
-          setTimeout(() => {
+          profileFetchTimeout = setTimeout(() => {
             fetchUserProfile(session.user);
-          }, 0);
+          }, 100);
         } else if (!session?.user) {
           setUserProfile(null);
         }
@@ -44,33 +57,50 @@ export function useAuth() {
     );
 
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabaseWithRetry.auth.getSession().then(({ data: { session } }) => {
       if (!initialized) {
         console.log('Initial session:', session?.user?.email);
         setSession(session);
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          setTimeout(() => {
+          profileFetchTimeout = setTimeout(() => {
             fetchUserProfile(session.user);
-          }, 0);
+          }, 100);
         }
         
         setLoading(false);
         initialized = true;
       }
+    }).catch((error) => {
+      console.error('Error getting initial session:', error);
+      setLoading(false);
+      initialized = true;
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+      unsubscribeNetwork();
+      if (profileFetchTimeout) {
+        clearTimeout(profileFetchTimeout);
+      }
+    };
   }, []);
 
   const fetchUserProfile = async (user: User) => {
+    if (!isOnline) {
+      console.log('Skipping profile fetch - offline');
+      return;
+    }
+
     try {
-      const { data: profile, error } = await supabase
+      const result = await supabaseWithRetry
         .from('user_profiles')
         .select('*')
         .eq('id', user.id)
         .single();
+      
+      const { data: profile, error } = result;
       
       if (error) {
         console.error('Error fetching profile:', error);
@@ -85,13 +115,24 @@ export function useAuth() {
       }
     } catch (err) {
       console.error('Profile fetch error:', err);
+      // Don't set loading to false here as it might be a temporary network issue
     }
   };
 
   const signIn = async (email: string, password: string) => {
+    if (!isOnline) {
+      return { 
+        data: null, 
+        error: { 
+          message: 'Sem conexão com a internet. Verifique sua conexão e tente novamente.',
+          code: 'NETWORK_ERROR'
+        } 
+      };
+    }
+
     try {
       console.log('Attempting to sign in with:', email);
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabaseWithRetry.auth.signInWithPassword({
         email,
         password,
       });
@@ -108,6 +149,8 @@ export function useAuth() {
           friendlyMessage = 'Email não confirmado. Verifique sua caixa de entrada.';
         } else if (error.message.includes('Too many requests')) {
           friendlyMessage = 'Muitas tentativas de login. Tente novamente em alguns minutos.';
+        } else if (error.message.includes('fetch')) {
+          friendlyMessage = 'Erro de conexão. Verifique sua internet e tente novamente.';
         }
         
         return { data: null, error: { ...error, message: friendlyMessage } };
@@ -115,40 +158,71 @@ export function useAuth() {
       
       console.log('Sign in successful:', data.user?.email);
       return { data, error: null };
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('Sign in exception:', err);
       return { 
         data: null, 
         error: { 
           message: 'Erro inesperado durante o login. Tente novamente.',
-          original: err 
-        } as any 
+          original: err as unknown 
+        }
       };
     }
   };
 
   const signUp = async (email: string, password: string, name?: string) => {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          name: name || email,
+    if (!isOnline) {
+      return { 
+        data: null, 
+        error: { 
+          message: 'Sem conexão com a internet. Verifique sua conexão e tente novamente.',
+          code: 'NETWORK_ERROR'
+        } 
+      };
+    }
+
+    try {
+      const { data, error } = await supabaseWithRetry.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            name: name || email,
+          },
+          emailRedirectTo: `${window.location.origin}/`
         },
-        emailRedirectTo: `${window.location.origin}/`
-      },
-    });
-    return { data, error };
+      });
+      return { data, error };
+    } catch (err: unknown) {
+      console.error('Sign up exception:', err);
+      return { 
+        data: null, 
+        error: { 
+          message: 'Erro inesperado durante o cadastro. Tente novamente.',
+          original: err as unknown 
+        }
+      };
+    }
   };
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (!error) {
-      setUser(null);
-      setSession(null);
-      setUserProfile(null);
+    try {
+      const { error } = await supabaseWithRetry.auth.signOut();
+      if (!error) {
+        setUser(null);
+        setSession(null);
+        setUserProfile(null);
+      }
+      return { error };
+    } catch (err: unknown) {
+      console.error('Sign out exception:', err);
+      return { 
+        error: { 
+          message: 'Erro inesperado durante o logout. Tente novamente.',
+          original: err as unknown 
+        }
+      };
     }
-    return { error };
   };
 
   const isAdmin = () => userProfile?.role === 'admin';
@@ -160,6 +234,7 @@ export function useAuth() {
     session,
     userProfile,
     loading,
+    isOnline,
     signIn,
     signUp,
     signOut,

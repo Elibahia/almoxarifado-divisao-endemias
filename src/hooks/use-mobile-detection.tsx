@@ -16,7 +16,7 @@ export function useIsMobile() {
           return false;
         }
 
-        const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera || '';
+        const userAgent = navigator.userAgent || navigator.vendor || (window as Window & { opera?: string }).opera || '';
         const mobileRegex = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i
         const isMobileUA = mobileRegex.test(userAgent)
         
@@ -24,7 +24,7 @@ export function useIsMobile() {
         
         const isTouchDevice = 'ontouchstart' in window || 
                              navigator.maxTouchPoints > 0 || 
-                             (navigator as any).msMaxTouchPoints > 0
+                             (navigator as Navigator & { msMaxTouchPoints?: number }).msMaxTouchPoints > 0
         
         const isChromeAndroid = /Chrome/.test(userAgent) && /Android/.test(userAgent)
         const isChromeiOS = /CriOS/.test(userAgent)
@@ -57,7 +57,7 @@ export function useIsMobile() {
         }
         return 'ontouchstart' in window || 
                navigator.maxTouchPoints > 0 || 
-               (navigator as any).msMaxTouchPoints > 0
+               (navigator as Navigator & { msMaxTouchPoints?: number }).msMaxTouchPoints > 0
       } catch (error) {
         console.error('Error detecting touch:', error)
         return false
@@ -156,7 +156,7 @@ export function useChromeStability() {
       setIsChromeMobile((isChrome && isAndroid) || isCriOS || isEdge)
       
       const standalone = window.matchMedia('(display-mode: standalone)').matches || 
-                        (window.navigator as any).standalone === true ||
+                        (window.navigator as Navigator & { standalone?: boolean }).standalone === true ||
                         document.referrer.includes('android-app://')
       
       setIsStandalone(standalone)
@@ -234,7 +234,7 @@ export function usePWAStability() {
       const checkPWA = () => {
         try {
           const standalone = window.matchMedia('(display-mode: standalone)').matches ||
-                            (window.navigator as any).standalone === true ||
+                            (window.navigator as Navigator & { standalone?: boolean }).standalone === true ||
                             document.referrer.includes('android-app://')
           setIsPWA(standalone)
         } catch (error) {

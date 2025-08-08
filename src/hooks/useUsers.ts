@@ -84,7 +84,7 @@ export function useUsers() {
       });
       
       return { success: true };
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error creating user:', error);
       
       let errorMessage = 'Erro ao criar usuário. Tente novamente.';
@@ -110,7 +110,7 @@ export function useUsers() {
   const updateUser = async (id: string, updates: Partial<Pick<UserProfile, 'name' | 'role' | 'is_active'>>) => {
     try {
       // Build the update object explicitly to ensure proper typing
-      const updateData: Record<string, any> = {};
+      const updateData: Partial<Pick<UserProfile, 'name' | 'role' | 'is_active'>> = {};
       
       if (updates.name !== undefined) updateData.name = updates.name;
       if (updates.role !== undefined) updateData.role = updates.role;
@@ -130,7 +130,7 @@ export function useUsers() {
       });
       
       return { success: true };
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error updating user:', error);
       toast({
         title: "Erro",

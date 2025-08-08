@@ -2,11 +2,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { OrderRequest, OrderProduct } from '@/types/orderTypes';
+import type { OrderStatus } from '@/constants/orderStatus';
 import { useToast } from '@/hooks/use-toast';
 
 export interface OrderRequestWithItems extends OrderRequest {
   id: string;
-  status: 'pending' | 'approved' | 'delivered' | 'received' | 'cancelled';
+  status: OrderStatus;
   createdBy: string | null;
   approvedBy: string | null;
   approvedAt: string | null;
@@ -44,7 +45,7 @@ export function useOrderRequests() {
         subdistrict: order.subdistrict,
         requestDate: order.request_date ? new Date(order.request_date + 'T00:00:00') : new Date(),
         observations: order.observations,
-        status: order.status as 'pending' | 'approved' | 'delivered' | 'received' | 'cancelled',
+        status: order.status as OrderStatus,
         createdBy: order.created_by,
         approvedBy: order.approved_by,
         approvedAt: order.approved_at,
@@ -146,7 +147,7 @@ export function useOrderRequests() {
       const { data: user } = await supabase.auth.getUser();
       const now = new Date().toISOString();
       
-      const updateData: any = { status };
+      const updateData: Record<string, string | null | OrderStatus> = { status };
       
       if (status === 'approved') {
         updateData.approved_by = user.user?.id;

@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -52,23 +52,26 @@ export function ProductForm({ product, onSuccess, onCancel }: ProductFormProps) 
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
+  // Memoize os valores padrão do formulário para evitar recálculos desnecessários
+  const defaultValues = useMemo(() => ({
+    name: product?.name || "",
+    category: product?.category || ProductCategory.GRAPHIC_MATERIALS,
+    description: product?.description || "",
+    batch: product?.batch || "",
+    expirationDate: product?.expirationDate ? product.expirationDate.toISOString().split('T')[0] : "",
+    minimumQuantity: product?.minimumQuantity || 0,
+    currentQuantity: product?.currentQuantity || 0,
+    location: product?.location || "",
+    supplier: product?.supplier || "",
+    unitOfMeasure: product?.unitOfMeasure || 'unid.',
+  }), [product]);
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
-      name: product?.name || "",
-      category: product?.category || ProductCategory.GRAPHIC_MATERIALS,
-      description: product?.description || "",
-      batch: product?.batch || "",
-      expirationDate: product?.expirationDate ? product.expirationDate.toISOString().split('T')[0] : "",
-      minimumQuantity: product?.minimumQuantity || 0,
-      currentQuantity: product?.currentQuantity || 0,
-      location: product?.location || "",
-      supplier: product?.supplier || "",
-      unitOfMeasure: product?.unitOfMeasure || 'unid.',
-    },
+    defaultValues,
   });
 
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+  const onSubmit = useCallback(async (values: z.infer<typeof formSchema>) => {
     setIsLoading(true);
     console.log('Submitting product:', values);
 
@@ -90,6 +93,7 @@ export function ProductForm({ product, onSuccess, onCancel }: ProductFormProps) 
             location: values.location || null,
             supplier: values.supplier || null,
             unit_of_measure: values.unitOfMeasure,
+            updated_at: new Date().toISOString(),
           })
           .eq('id', product.id)
           .select();
@@ -112,6 +116,8 @@ export function ProductForm({ product, onSuccess, onCancel }: ProductFormProps) 
               location: values.location || null,
               supplier: values.supplier || null,
               unit_of_measure: values.unitOfMeasure,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
             }
           ])
           .select();
@@ -132,19 +138,20 @@ export function ProductForm({ product, onSuccess, onCancel }: ProductFormProps) 
       });
       
       onSuccess();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error:', error);
       toast({
         variant: "destructive",
         title: `Erro ao ${product ? 'atualizar' : 'criar'} produto`,
-        description: error.message || "Ocorreu um erro inesperado. Tente novamente.",
+        description: error instanceof Error ? error.message : "Ocorreu um erro inesperado. Tente novamente.",
       });
+      throw error; // Re-throw para que o componente pai possa lidar com o erro, se necessário
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [product, onSuccess, toast]);
 
-  const getCategoryLabel = (category: ProductCategory) => {
+  const getCategoryLabel = useCallback((category: ProductCategory) => {
     const labels = {
       [ProductCategory.GRAPHIC_MATERIALS]: 'Materiais Gráficos',
       [ProductCategory.CLEANING_MATERIALS]: 'Materiais de Limpeza',
@@ -156,7 +163,9 @@ export function ProductForm({ product, onSuccess, onCancel }: ProductFormProps) 
       [ProductCategory.OTHER]: 'Outros'
     };
     return labels[category] || category;
-  };
+  }, []);
+
+
 
   return (
     <Card className="w-full max-w-2xl mx-auto">

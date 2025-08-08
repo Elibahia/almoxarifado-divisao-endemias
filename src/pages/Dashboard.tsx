@@ -241,7 +241,7 @@ export default function Dashboard() {
                     <h4 className="font-medium text-sm">{alert.product}</h4>
                     <p className="text-xs text-muted-foreground">{alert.message}</p>
                   </div>
-                  <Badge variant={getSeverityColor(alert.severity) as any}>
+                  <Badge variant={getSeverityColor(alert.severity) as 'default' | 'secondary' | 'destructive' | 'outline'}>
                     {alert.severity === 'high' ? 'Alto' : alert.severity === 'medium' ? 'Médio' : 'Baixo'}
                   </Badge>
                 </div>

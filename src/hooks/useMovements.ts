@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { MovementType } from '@/types';
 import { useToast } from '@/hooks/use-toast';
@@ -23,7 +23,7 @@ export function useMovements() {
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
-  const fetchMovements = async () => {
+  const fetchMovements = useCallback(async () => {
     setIsLoading(true);
     console.log('Fetching movements from Supabase...');
 
@@ -62,21 +62,21 @@ export function useMovements() {
 
       console.log('Transformed movements:', transformedMovements);
       setMovements(transformedMovements);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error in fetchMovements:', error);
       toast({
         variant: "destructive",
         title: "Erro ao carregar movimentações",
-        description: error.message || "Não foi possível carregar o histórico de movimentações.",
+        description: (error as Error)?.message || "Não foi possível carregar o histórico de movimentações.",
       });
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [toast]);
 
   useEffect(() => {
     fetchMovements();
-  }, []);
+  }, [fetchMovements]);
 
   return {
     movements,

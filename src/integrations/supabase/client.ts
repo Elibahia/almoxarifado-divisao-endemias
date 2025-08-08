@@ -13,5 +13,237 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     storage: localStorage,
     persistSession: true,
     autoRefreshToken: true,
-  }
+    detectSessionInUrl: true,
+    flowType: 'pkce',
+  },
+  global: {
+    headers: {
+      'X-Client-Info': 'almoxarifado-endemias',
+    },
+  },
+  realtime: {
+    params: {
+      eventsPerSecond: 10,
+    },
+  },
 });
+
+// Enhanced error handling wrapper
+export const supabaseWithRetry = {
+  ...supabase,
+  from: (table: string) => {
+    const originalFrom = supabase.from(table);
+    
+    return {
+      ...originalFrom,
+      select: (...args: any[]) => {
+        const query = originalFrom.select(...args);
+        return {
+          ...query,
+          eq: (column: string, value: any) => {
+            const result = query.eq(column, value);
+            return {
+              ...result,
+              single: async () => {
+                const response = await withRetry(() => result.single());
+                return response;
+              },
+              then: (callback: any) => {
+                return withRetry(() => result.then(callback));
+              },
+            };
+          },
+          order: (column: string, options?: any) => {
+            const result = query.order(column, options);
+            return {
+              ...result,
+              then: (callback: any) => {
+                return withRetry(() => result.then(callback));
+              },
+            };
+          },
+          then: (callback: any) => {
+            return withRetry(() => query.then(callback));
+          },
+        };
+      },
+      insert: (...args: any[]) => {
+        const query = originalFrom.insert(...args);
+        return {
+          ...query,
+          select: (...selectArgs: any[]) => {
+            const result = query.select(...selectArgs);
+            return {
+              ...result,
+              single: async () => {
+                const response = await withRetry(() => result.single());
+                return response;
+              },
+              then: (callback: any) => {
+                return withRetry(() => result.then(callback));
+              },
+            };
+          },
+          then: (callback: any) => {
+            return withRetry(() => query.then(callback));
+          },
+        };
+      },
+      update: (...args: any[]) => {
+        const query = originalFrom.update(...args);
+        return {
+          ...query,
+          eq: (column: string, value: any) => {
+            const result = query.eq(column, value);
+            return {
+              ...result,
+              then: (callback: any) => {
+                return withRetry(() => result.then(callback));
+              },
+            };
+          },
+          then: (callback: any) => {
+            return withRetry(() => query.then(callback));
+          },
+        };
+      },
+      delete: (...args: any[]) => {
+        const query = originalFrom.delete(...args);
+        return {
+          ...query,
+          eq: (column: string, value: any) => {
+            const result = query.eq(column, value);
+            return {
+              ...result,
+              then: (callback: any) => {
+                return withRetry(() => result.then(callback));
+              },
+            };
+          },
+          then: (callback: any) => {
+            return withRetry(() => query.then(callback));
+          },
+        };
+      },
+      upsert: (...args: any[]) => {
+        const query = originalFrom.upsert(...args);
+        return {
+          ...query,
+          then: (callback: any) => {
+            return withRetry(() => query.then(callback));
+          },
+        };
+      },
+    };
+  },
+  auth: {
+    ...supabase.auth,
+    signInWithPassword: async (credentials: { email: string; password: string }) => {
+      return await withRetry(() => supabase.auth.signInWithPassword(credentials));
+    },
+    signUp: async (credentials: any) => {
+      return await withRetry(() => supabase.auth.signUp(credentials));
+    },
+    signOut: async () => {
+      return await withRetry(() => supabase.auth.signOut());
+    },
+    getSession: async () => {
+      return await withRetry(() => supabase.auth.getSession());
+    },
+    getUser: async () => {
+      return await withRetry(() => supabase.auth.getUser());
+    },
+    onAuthStateChange: (callback: any) => {
+      return supabase.auth.onAuthStateChange(callback);
+    },
+  },
+  rpc: (func: string, params?: any) => {
+    return withRetry(() => supabase.rpc(func, params));
+  },
+};
+
+// Retry mechanism with exponential backoff
+async function withRetry<T>(
+  operation: () => Promise<T>,
+  maxRetries: number = 3,
+  baseDelay: number = 1000
+): Promise<T> {
+  let lastError: Error;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const result = await operation();
+      return result;
+    } catch (error) {
+      lastError = error as Error;
+
+      // Don't retry on certain errors
+      if (shouldNotRetry(error as any)) {
+        throw error;
+      }
+
+      if (attempt === maxRetries) {
+        console.error(`Operation failed after ${maxRetries + 1} attempts:`, error);
+        throw error;
+      }
+
+      // Exponential backoff with jitter
+      const delay = baseDelay * Math.pow(2, attempt) + Math.random() * 1000;
+      console.warn(`Operation failed, retrying in ${delay}ms (attempt ${attempt + 1}/${maxRetries + 1})`);
+
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+
+  throw lastError!;
+}
+
+// Determine if an error should not be retried
+function shouldNotRetry(error: any): boolean {
+  // Don't retry authentication errors
+  if (error?.message?.includes('Invalid login credentials')) return true;
+  if (error?.message?.includes('Email not confirmed')) return true;
+  if (error?.message?.includes('Too many requests')) return true;
+  
+  // Don't retry permission errors
+  if (error?.code === 'PGRST301') return true; // JWT expired
+  if (error?.code === 'PGRST302') return true; // JWT invalid
+  if (error?.code === 'PGRST303') return true; // JWT missing
+  
+  // Don't retry validation errors
+  if (error?.code === 'PGRST400') return true; // Bad request
+  if (error?.code === 'PGRST404') return true; // Not found
+  
+  return false;
+}
+
+// Network status monitoring
+export const networkStatus = {
+  isOnline: navigator.onLine,
+  listeners: new Set<(online: boolean) => void>(),
+  
+  init() {
+    const updateStatus = () => {
+      this.isOnline = navigator.onLine;
+      this.listeners.forEach(listener => listener(this.isOnline));
+      console.log(`Network status changed: ${this.isOnline ? 'online' : 'offline'}`);
+    };
+    
+    window.addEventListener('online', updateStatus);
+    window.addEventListener('offline', updateStatus);
+    
+    return () => {
+      window.removeEventListener('online', updateStatus);
+      window.removeEventListener('offline', updateStatus);
+    };
+  },
+  
+  subscribe(listener: (online: boolean) => void) {
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
+  },
+  
+  getStatus() {
+    return this.isOnline;
+  },
+};

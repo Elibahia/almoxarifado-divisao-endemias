@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { useErrorHandler } from "@/hooks/useErrorHandler";
 import {
   Shield,
   Mail,
@@ -26,13 +27,23 @@ export default function Login() {
   const [error, setError] = useState<string | null>(null);
   const [attemptCount, setAttemptCount] = useState(0);
 
-  const { signIn } = useAuth();
+  const { signIn, isOnline } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { handleError, isRetrying } = useErrorHandler({
+    maxRetries: 2,
+    showToast: false, // We'll handle toasts manually
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
+    // Check network connectivity
+    if (!isOnline) {
+      setError('Sem conexão com a internet. Verifique sua conexão e tente novamente.');
+      return;
+    }
 
     // Security: Sanitize inputs
     const sanitizedEmail = sanitizeInput(email.toLowerCase().trim());
@@ -60,7 +71,12 @@ export default function Login() {
     console.log('Submitting login form with email:', sanitizedEmail);
 
     try {
-      const { error } = await signIn(sanitizedEmail, sanitizedPassword);
+      const result = await handleError(
+        () => signIn(sanitizedEmail, sanitizedPassword),
+        'Login'
+      );
+
+      const { error } = result;
 
       if (error) {
         console.error('Login error:', error);
@@ -83,7 +99,7 @@ export default function Login() {
           window.location.href = '/';
         }, 1000);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Login exception:', error);
       setAttemptCount(prev => prev + 1);
       const errorMessage = "Erro inesperado durante o login. Tente novamente.";
@@ -202,9 +218,9 @@ export default function Login() {
                 className="w-full"
                 variant="default"
                 size="lg"
-                disabled={loading || attemptCount >= 5}
+                disabled={loading || isRetrying || attemptCount >= 5}
               >
-                {loading ? "Entrando..." : "Entrar"}
+                {loading || isRetrying ? "Entrando..." : "Entrar"}
               </Button>
             </form>
 

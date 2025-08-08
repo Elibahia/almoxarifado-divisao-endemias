@@ -5,6 +5,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { NotificationToastContainer } from "@/components/ui/notification-toast";
 import { PWAUpdatePrompt, usePWA } from "@/components/PWAUpdatePrompt";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
+import { NetworkStatus } from "@/components/NetworkStatus";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "@/hooks/useTheme";
@@ -88,96 +90,99 @@ const App = () => {
   const { needRefresh, handleUpdate, handleClose } = usePWA();
   
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider defaultTheme="system" storageKey="almoxarifado-theme">
-        <SupervisorProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <NotificationToastContainer />
-            <ChromeMobileDebug />
-            {needRefresh && (
-              <PWAUpdatePrompt 
-                onUpdate={handleUpdate} 
-                onClose={handleClose} 
-              />
-            )}
-            <PWAInstallPrompt />
-            <BrowserRouter>
-            <Routes>
-              <Route path="/login" element={
-                <AuthRoute>
-                  <Login />
-                </AuthRoute>
-              } />
-              <Route path="/" element={
-                <ProtectedRoute>
-                  <Index />
-                </ProtectedRoute>
-              } />
-              <Route path="/products" element={
-                <ProtectedRoute allowedRoles={['admin', 'gestor_almoxarifado']}>
-                  <Layout>
-                    <Products />
-                  </Layout>
-                </ProtectedRoute>
-              } />
-              <Route path="/movements" element={
-                <ProtectedRoute allowedRoles={['admin', 'gestor_almoxarifado']}>
-                  <Layout>
-                    <Movements />
-                  </Layout>
-                </ProtectedRoute>
-              } />
-              <Route path="/order-requests" element={
-                <ProtectedRoute allowedRoles={['admin', 'gestor_almoxarifado', 'supervisor_geral']}>
-                  <Layout>
-                    <OrderRequests />
-                  </Layout>
-                </ProtectedRoute>
-              } />
-              <Route path="/order-management" element={
-                <ProtectedRoute allowedRoles={['admin', 'gestor_almoxarifado', 'supervisor_geral']}>
-                  <Layout>
-                    <OrderManagement />
-                  </Layout>
-                </ProtectedRoute>
-              } />
-              <Route path="/reports" element={
-                <ProtectedRoute allowedRoles={['admin', 'gestor_almoxarifado']}>
-                  <Layout>
-                    <Reports />
-                  </Layout>
-                </ProtectedRoute>
-              } />
-              <Route path="/alerts" element={
-                <ProtectedRoute allowedRoles={['admin', 'gestor_almoxarifado']}>
-                  <Layout>
-                    <Alerts />
-                  </Layout>
-                </ProtectedRoute>
-              } />
-              <Route path="/users" element={
-                <ProtectedRoute allowedRoles={['admin']}>
-                  <Layout>
-                    <Users />
-                  </Layout>
-                </ProtectedRoute>
-              } />
-              <Route path="/settings" element={
-                <ProtectedRoute allowedRoles={['admin', 'gestor_almoxarifado']}>
-                  <Layout>
-                    <Settings />
-                  </Layout>
-                </ProtectedRoute>
-              } />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </TooltipProvider>
-      </SupervisorProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider defaultTheme="system" storageKey="almoxarifado-theme">
+          <SupervisorProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <NotificationToastContainer />
+              <NetworkStatus />
+              <ChromeMobileDebug />
+              {needRefresh && (
+                <PWAUpdatePrompt 
+                  onUpdate={handleUpdate} 
+                  onClose={handleClose} 
+                />
+              )}
+              <PWAInstallPrompt />
+              <BrowserRouter>
+              <Routes>
+                <Route path="/login" element={
+                  <AuthRoute>
+                    <Login />
+                  </AuthRoute>
+                } />
+                <Route path="/" element={
+                  <ProtectedRoute>
+                    <Index />
+                  </ProtectedRoute>
+                } />
+                <Route path="/products" element={
+                  <ProtectedRoute allowedRoles={['admin', 'gestor_almoxarifado']}>
+                    <Layout>
+                      <Products />
+                    </Layout>
+                  </ProtectedRoute>
+                } />
+                <Route path="/movements" element={
+                  <ProtectedRoute allowedRoles={['admin', 'gestor_almoxarifado']}>
+                    <Layout>
+                      <Movements />
+                    </Layout>
+                  </ProtectedRoute>
+                } />
+                <Route path="/order-requests" element={
+                  <ProtectedRoute allowedRoles={['admin', 'gestor_almoxarifado', 'supervisor_geral']}>
+                    <Layout>
+                      <OrderRequests />
+                    </Layout>
+                  </ProtectedRoute>
+                } />
+                <Route path="/order-management" element={
+                  <ProtectedRoute allowedRoles={['admin', 'gestor_almoxarifado', 'supervisor_geral']}>
+                    <Layout>
+                      <OrderManagement />
+                    </Layout>
+                  </ProtectedRoute>
+                } />
+                <Route path="/reports" element={
+                  <ProtectedRoute allowedRoles={['admin', 'gestor_almoxarifado']}>
+                    <Layout>
+                      <Reports />
+                    </Layout>
+                  </ProtectedRoute>
+                } />
+                <Route path="/alerts" element={
+                  <ProtectedRoute allowedRoles={['admin', 'gestor_almoxarifado']}>
+                    <Layout>
+                      <Alerts />
+                    </Layout>
+                  </ProtectedRoute>
+                } />
+                <Route path="/users" element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <Layout>
+                      <Users />
+                    </Layout>
+                  </ProtectedRoute>
+                } />
+                <Route path="/settings" element={
+                  <ProtectedRoute allowedRoles={['admin', 'gestor_almoxarifado']}>
+                    <Layout>
+                      <Settings />
+                    </Layout>
+                  </ProtectedRoute>
+                } />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </TooltipProvider>
+        </SupervisorProvider>
+        </ThemeProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 };
 

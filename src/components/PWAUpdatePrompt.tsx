@@ -53,11 +53,18 @@ export function usePWA() {
     if ('serviceWorker' in navigator) {
       import('virtual:pwa-register').then(({ registerSW }) => {
         const updateSW = registerSW({
+          immediate: true,
           onNeedRefresh() {
             setNeedRefresh(true);
           },
           onOfflineReady() {
             console.log('App ready to work offline');
+          },
+          onRegistered(registration) {
+            console.log('Service Worker registered', registration);
+          },
+          onRegisterError(error) {
+            console.error('Service Worker registration error', error);
           },
         });
         setUpdateSW(() => updateSW);
@@ -67,7 +74,8 @@ export function usePWA() {
 
   const handleUpdate = async () => {
     if (updateSW) {
-      await updateSW();
+      // força ativação imediata e recarrega a página para usar a nova versão
+      await updateSW(true);
       setNeedRefresh(false);
     }
   };

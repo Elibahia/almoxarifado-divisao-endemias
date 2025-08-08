@@ -132,7 +132,8 @@ export function useReports() {
     });
   };
 
-  const exportToPDF = async (data: any[], reportType: string, filters: ReportFilters) => {
+  type ReportRow = Record<string, string | number | null>
+  const exportToPDF = async (data: ReportRow[], reportType: string, filters: ReportFilters) => {
     setIsGenerating(true);
     try {
       // Simulação de geração de PDF
@@ -157,7 +158,7 @@ export function useReports() {
     }
   };
 
-  const exportToExcel = async (data: any[], reportType: string, filters: ReportFilters) => {
+  const exportToExcel = async (data: ReportRow[], reportType: string, filters: ReportFilters) => {
     setIsGenerating(true);
     try {
       // Simulação de geração de Excel

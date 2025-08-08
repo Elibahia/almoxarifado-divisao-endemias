@@ -72,9 +72,9 @@ export function NotificationToastContainer() {
 
   // Make addToast available globally
   useEffect(() => {
-    (window as any).addNotificationToast = addToast;
+    (window as unknown as { addNotificationToast?: typeof addToast }).addNotificationToast = addToast;
     return () => {
-      delete (window as any).addNotificationToast;
+      delete (window as unknown as { addNotificationToast?: typeof addToast }).addNotificationToast;
     };
   }, []);
 
@@ -93,7 +93,8 @@ export function NotificationToastContainer() {
 
 // Helper function to show toasts
 export const showNotificationToast = (toast: Omit<NotificationToast, 'id'>) => {
-  if ((window as any).addNotificationToast) {
-    (window as any).addNotificationToast(toast);
+  const w = window as unknown as { addNotificationToast?: (t: Omit<NotificationToast, 'id'>) => void }
+  if (w.addNotificationToast) {
+    w.addNotificationToast(toast)
   }
 };
