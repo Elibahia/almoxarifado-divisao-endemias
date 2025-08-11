@@ -1,3 +1,5 @@
+import { memo, useMemo, useRef } from 'react';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { User, Calendar, Eye, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -17,7 +19,7 @@ interface OrderTableProps {
   isPending: boolean;
 }
 
-export function OrderTable({
+export const OrderTable = memo(function OrderTable({
   orders,
   selectedOrder,
   setSelectedOrder,
@@ -25,8 +27,23 @@ export function OrderTable({
   onDeleteOrder,
   isPending,
 }: OrderTableProps) {
+  const parentRef = useRef<HTMLDivElement | null>(null);
+
+  const rowVirtualizer = useVirtualizer({
+    count: orders.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 56, // approximate row height in px
+    overscan: 8,
+  });
+
+  const virtualItems = rowVirtualizer.getVirtualItems();
+  const paddingTop = virtualItems.length > 0 ? virtualItems[0].start : 0;
+  const paddingBottom = virtualItems.length > 0
+    ? rowVirtualizer.getTotalSize() - virtualItems[virtualItems.length - 1].end
+    : 0;
+
   return (
-    <div className="hidden md:block rounded-md border">
+    <div className="hidden md:block rounded-md border max-h-[70vh] overflow-auto" ref={parentRef}>
       <Table>
         <TableHeader>
           <TableRow>
@@ -39,13 +56,20 @@ export function OrderTable({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {orders.map((order) => {
+          {paddingTop > 0 && (
+            <TableRow>
+              <TableCell colSpan={6} style={{ height: paddingTop }} />
+            </TableRow>
+          )}
+
+          {virtualItems.map((virtualRow) => {
+            const order = orders[virtualRow.index];
             const statusConfig = getStatusConfig(order.status);
             const StatusIcon = statusConfig.icon;
             const canDelete = order.status === 'pending';
-            
+
             return (
-              <TableRow key={order.id}>
+              <TableRow key={order.id} data-index={virtualRow.index}>
                 <TableCell className="font-medium">
                   <div className="flex items-center gap-2">
                     <User className="h-4 w-4 text-muted-foreground" />
@@ -123,8 +147,14 @@ export function OrderTable({
               </TableRow>
             );
           })}
+
+          {paddingBottom > 0 && (
+            <TableRow>
+              <TableCell colSpan={6} style={{ height: paddingBottom }} />
+            </TableRow>
+          )}
         </TableBody>
       </Table>
     </div>
   );
-}
+});

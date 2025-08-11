@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { OrderRequestWithItems } from '@/hooks/useOrderRequests';
 import { STATUS_ORDER } from '@/constants/orderStatus';
 import { OrderStatus } from '@/constants/orderStatus';
@@ -17,10 +17,28 @@ export function useOrderFilters({ orders }: UseOrderFiltersProps) {
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
+  // Memoize status counts to avoid expensive recalculation
+  const statusCounts = useMemo(() => {
+    const counts = { active: 0, completed: 0, cancelled: 0, total: orders.length };
+    
+    for (const order of orders) {
+      if (order.status === 'pending' || order.status === 'approved') {
+        counts.active++;
+      } else if (order.status === 'delivered' || order.status === 'received') {
+        counts.completed++;
+      } else if (order.status === 'cancelled') {
+        counts.cancelled++;
+      }
+    }
+    
+    return counts;
+  }, [orders]);
+
+  // Memoize expensive filtering and sorting operations
   const filteredOrders = useMemo(() => {
     let filtered = orders;
 
-    // Apply tab filter
+    // Apply tab filter with optimized condition check
     switch (activeTab) {
       case 'active':
         filtered = filtered.filter(order => 
@@ -42,40 +60,36 @@ export function useOrderFilters({ orders }: UseOrderFiltersProps) {
       filtered = filtered.filter(order => order.status === statusFilter);
     }
 
-    // Apply sorting
-    filtered = filtered.sort((a, b) => {
-      if (sortBy === 'date') {
+    // Apply sorting with optimized comparisons
+    if (sortBy === 'date') {
+      filtered = filtered.sort((a, b) => {
         const dateA = new Date(a.requestDate).getTime();
         const dateB = new Date(b.requestDate).getTime();
         return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
-      } else if (sortBy === 'status') {
+      });
+    } else if (sortBy === 'status') {
+      filtered = filtered.sort((a, b) => {
         const indexA = STATUS_ORDER.indexOf(a.status as OrderStatus);
         const indexB = STATUS_ORDER.indexOf(b.status as OrderStatus);
         return sortOrder === 'asc' ? indexA - indexB : indexB - indexA;
-      }
-      return 0;
-    });
+      });
+    }
 
     return filtered;
   }, [orders, activeTab, statusFilter, sortBy, sortOrder]);
 
-  const getStatusCounts = () => {
-    const activeCount = orders.filter(order => 
-      order.status === 'pending' || order.status === 'approved'
-    ).length;
-    
-    const completedCount = orders.filter(order => 
-      order.status === 'delivered' || order.status === 'received'
-    ).length;
-    
-    const cancelledCount = orders.filter(order => 
-      order.status === 'cancelled'
-    ).length;
+  // Memoize function returning status counts to prevent object recreation
+  const getStatusCounts = useCallback(() => {
+    return {
+      activeCount: statusCounts.active,
+      completedCount: statusCounts.completed,
+      cancelledCount: statusCounts.cancelled,
+      total: statusCounts.total
+    };
+  }, [statusCounts]);
 
-    return { activeCount, completedCount, cancelledCount, total: orders.length };
-  };
-
-  const getTabStatusOptions = () => {
+  // Memoize tab status options to prevent array recreation
+  const getTabStatusOptions = useCallback(() => {
     switch (activeTab) {
       case 'active':
         return [
@@ -97,7 +111,7 @@ export function useOrderFilters({ orders }: UseOrderFiltersProps) {
       default:
         return [{ value: 'all', label: 'Todos' }];
     }
-  };
+  }, [activeTab]);
 
   return {
     activeTab,

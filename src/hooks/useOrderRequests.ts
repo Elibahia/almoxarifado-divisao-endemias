@@ -1,5 +1,6 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMemo, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { OrderRequest, OrderProduct } from '@/types/orderTypes';
 import type { OrderStatus } from '@/constants/orderStatus';
@@ -19,65 +20,85 @@ export interface OrderRequestWithItems extends OrderRequest {
   items: OrderProduct[];
 }
 
+// Transform order data - memoized to prevent excessive processing
+const transformOrderData = (orders: any[], items: any[]): OrderRequestWithItems[] => {
+  // Create items lookup map for O(1) access instead of filtering repeatedly
+  const itemsMap = new Map<string, any[]>();
+  for (const item of items) {
+    const orderId = item.order_request_id;
+    if (!itemsMap.has(orderId)) {
+      itemsMap.set(orderId, []);
+    }
+    itemsMap.get(orderId)!.push(item);
+  }
+
+  return orders.map(order => {
+    const orderItems = itemsMap.get(order.id) || [];
+    const transformedItems = orderItems.map(item => ({
+      id: item.id,
+      productId: item.product_id,
+      productName: item.product_name,
+      quantity: item.quantity,
+      unitOfMeasure: item.unit_of_measure,
+    }));
+
+    return {
+      id: order.id,
+      requesterName: order.requester_name,
+      subdistrict: order.subdistrict,
+      requestDate: order.request_date ? new Date(order.request_date + 'T00:00:00') : new Date(),
+      observations: order.observations,
+      status: order.status as OrderStatus,
+      createdBy: order.created_by,
+      approvedBy: order.approved_by,
+      approvedAt: order.approved_at,
+      deliveredAt: order.delivered_at,
+      receivedAt: order.received_at,
+      receivedBy: order.received_by,
+      createdAt: order.created_at,
+      updatedAt: order.updated_at,
+      items: transformedItems,
+      products: transformedItems, // Keep for backwards compatibility
+    };
+  });
+};
+
 export function useOrderRequests() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: orderRequests = [], isLoading } = useQuery({
+  const { data: rawData, isLoading } = useQuery({
     queryKey: ['orderRequests'],
     queryFn: async () => {
-      const { data: orders, error: ordersError } = await supabase
-        .from('order_requests')
-        .select('*')
-        .order('created_at', { ascending: false });
+      const [ordersResult, itemsResult] = await Promise.all([
+        supabase
+          .from('order_requests')
+          .select('*')
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('order_request_items')
+          .select('*')
+      ]);
 
-      if (ordersError) throw ordersError;
+      if (ordersResult.error) throw ordersResult.error;
+      if (itemsResult.error) throw itemsResult.error;
 
-      const { data: items, error: itemsError } = await supabase
-        .from('order_request_items')
-        .select('*');
-
-      if (itemsError) throw itemsError;
-
-      return orders.map(order => ({
-        id: order.id,
-        requesterName: order.requester_name,
-        subdistrict: order.subdistrict,
-        requestDate: order.request_date ? new Date(order.request_date + 'T00:00:00') : new Date(),
-        observations: order.observations,
-        status: order.status as OrderStatus,
-        createdBy: order.created_by,
-        approvedBy: order.approved_by,
-        approvedAt: order.approved_at,
-        deliveredAt: order.delivered_at,
-        receivedAt: order.received_at,
-        receivedBy: order.received_by,
-        createdAt: order.created_at,
-        updatedAt: order.updated_at,
-        items: items
-          .filter(item => item.order_request_id === order.id)
-          .map(item => ({
-            id: item.id,
-            productId: item.product_id,
-            productName: item.product_name,
-            quantity: item.quantity,
-            unitOfMeasure: item.unit_of_measure,
-          })),
-        products: items
-          .filter(item => item.order_request_id === order.id)
-          .map(item => ({
-            id: item.id,
-            productId: item.product_id,
-            productName: item.product_name,
-            quantity: item.quantity,
-            unitOfMeasure: item.unit_of_measure,
-          })),
-      })) as OrderRequestWithItems[];
+      return {
+        orders: ordersResult.data,
+        items: itemsResult.data
+      };
     },
   });
 
+  // Memoize the expensive data transformation
+  const orderRequests = useMemo(() => {
+    if (!rawData) return [];
+    return transformOrderData(rawData.orders, rawData.items);
+  }, [rawData]);
+
+  // Memoize mutation callbacks to prevent prop changes
   const createOrderRequest = useMutation({
-    mutationFn: async (orderData: {
+    mutationFn: useCallback(async (orderData: {
       requesterName: string;
       subdistrict: string;
       products: OrderProduct[];
@@ -151,26 +172,26 @@ export function useOrderRequests() {
       console.log('✅ Items criados com sucesso');
 
       return order;
-    },
-    onSuccess: () => {
+    }, []),
+    onSuccess: useCallback(() => {
       queryClient.invalidateQueries({ queryKey: ['orderRequests'] });
       toast({
         title: 'Pedido criado com sucesso!',
         description: 'Seu pedido foi registrado e será processado em breve.',
       });
-    },
-    onError: (error) => {
+    }, [queryClient, toast]),
+    onError: useCallback((error) => {
       console.error('Error creating order request:', error);
       toast({
         variant: 'destructive',
         title: 'Erro ao criar pedido',
         description: 'Ocorreu um erro ao criar seu pedido. Tente novamente.',
       });
-    },
+    }, [toast]),
   });
 
   const updateOrderStatus = useMutation({
-    mutationFn: async ({
+    mutationFn: useCallback(async ({
       orderId,
       status,
     }: {
@@ -198,26 +219,26 @@ export function useOrderRequests() {
         .eq('id', orderId);
 
       if (error) throw error;
-    },
-    onSuccess: () => {
+    }, []),
+    onSuccess: useCallback(() => {
       queryClient.invalidateQueries({ queryKey: ['orderRequests'] });
       toast({
         title: 'Status atualizado com sucesso!',
         description: 'O status do pedido foi atualizado.',
       });
-    },
-    onError: (error) => {
+    }, [queryClient, toast]),
+    onError: useCallback((error) => {
       console.error('Error updating order status:', error);
       toast({
         variant: 'destructive',
         title: 'Erro ao atualizar status',
         description: 'Ocorreu um erro ao atualizar o status do pedido.',
       });
-    },
+    }, [toast]),
   });
 
   const deleteOrderRequest = useMutation({
-    mutationFn: async (orderId: string) => {
+    mutationFn: useCallback(async (orderId: string) => {
       // First delete the order items
       const { error: itemsError } = await supabase
         .from('order_request_items')
@@ -233,29 +254,30 @@ export function useOrderRequests() {
         .eq('id', orderId);
 
       if (orderError) throw orderError;
-    },
-    onSuccess: () => {
+    }, []),
+    onSuccess: useCallback(() => {
       queryClient.invalidateQueries({ queryKey: ['orderRequests'] });
       toast({
         title: 'Pedido excluído com sucesso!',
         description: 'O pedido foi removido permanentemente.',
       });
-    },
-    onError: (error) => {
+    }, [queryClient, toast]),
+    onError: useCallback((error) => {
       console.error('Error deleting order request:', error);
       toast({
         variant: 'destructive',
         title: 'Erro ao excluir pedido',
         description: 'Ocorreu um erro ao excluir o pedido.',
       });
-    },
+    }, [toast]),
   });
 
-  return {
+  // Return memoized stable object to prevent prop changes
+  return useMemo(() => ({
     orderRequests,
     isLoading,
     createOrderRequest,
     updateOrderStatus,
     deleteOrderRequest,
-  };
+  }), [orderRequests, isLoading, createOrderRequest, updateOrderStatus, deleteOrderRequest]);
 }

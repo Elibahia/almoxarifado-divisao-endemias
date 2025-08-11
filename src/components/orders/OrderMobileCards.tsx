@@ -1,3 +1,5 @@
+import { memo, useRef } from 'react';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { User, Calendar, Eye, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -17,7 +19,7 @@ interface OrderMobileCardsProps {
   isPending: boolean;
 }
 
-export function OrderMobileCards({
+export const OrderMobileCards = memo(function OrderMobileCards({
   orders,
   selectedOrder,
   setSelectedOrder,
@@ -25,15 +27,33 @@ export function OrderMobileCards({
   onDeleteOrder,
   isPending,
 }: OrderMobileCardsProps) {
+  const parentRef = useRef<HTMLDivElement | null>(null);
+
+  const rowVirtualizer = useVirtualizer({
+    count: orders.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 160, // approximate card height
+    overscan: 6,
+  });
+
+  const virtualItems = rowVirtualizer.getVirtualItems();
+  const paddingTop = virtualItems.length > 0 ? virtualItems[0].start : 0;
+  const paddingBottom = virtualItems.length > 0
+    ? rowVirtualizer.getTotalSize() - virtualItems[virtualItems.length - 1].end
+    : 0;
+
   return (
-    <div className="md:hidden space-y-4">
-      {orders.map((order) => {
+    <div className="md:hidden space-y-4 max-h-[70vh] overflow-auto" ref={parentRef}>
+      {paddingTop > 0 && <div style={{ height: paddingTop }} />}
+
+      {virtualItems.map((virtualRow) => {
+        const order = orders[virtualRow.index];
         const statusConfig = getStatusConfig(order.status);
         const StatusIcon = statusConfig.icon;
         const canDelete = order.status === 'pending';
-        
+
         return (
-          <Card key={order.id} className="p-4">
+          <Card key={order.id} className="p-4" data-index={virtualRow.index}>
             <div className="flex items-start justify-between mb-3">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
@@ -116,6 +136,8 @@ export function OrderMobileCards({
           </Card>
         );
       })}
+
+      {paddingBottom > 0 && <div style={{ height: paddingBottom }} />}
     </div>
   );
-}
+});

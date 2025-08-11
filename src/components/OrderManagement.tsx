@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Package, Plus } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -30,7 +30,8 @@ export function OrderManagement() {
     getTabStatusOptions,
   } = useOrderFilters({ orders: orderRequests });
 
-  const handleStatusUpdate = async (orderId: string, status: 'approved' | 'delivered' | 'received' | 'cancelled') => {
+  // Memoize handlers to prevent unnecessary re-renders
+  const handleStatusUpdate = useCallback(async (orderId: string, status: 'approved' | 'delivered' | 'received' | 'cancelled') => {
     try {
       await updateOrderStatus.mutateAsync({ orderId, status });
       
@@ -54,9 +55,9 @@ export function OrderManagement() {
         message: 'Não foi possível atualizar o status do pedido.',
       });
     }
-  };
+  }, [updateOrderStatus]);
 
-  const handleDeleteOrder = async (orderId: string) => {
+  const handleDeleteOrder = useCallback(async (orderId: string) => {
     try {
       await deleteOrderRequest.mutateAsync(orderId);
       showNotificationToast({
@@ -72,7 +73,11 @@ export function OrderManagement() {
         message: 'Não foi possível excluir o pedido.',
       });
     }
-  };
+  }, [deleteOrderRequest]);
+
+  const handleSetSelectedOrder = useCallback((order: OrderRequestWithItems | null) => {
+    setSelectedOrder(order);
+  }, []);
 
   if (isLoading) {
     return (
@@ -147,7 +152,7 @@ export function OrderManagement() {
               <OrderTable
                 orders={filteredOrders}
                 selectedOrder={selectedOrder}
-                setSelectedOrder={setSelectedOrder}
+                setSelectedOrder={handleSetSelectedOrder}
                 onStatusUpdate={handleStatusUpdate}
                 onDeleteOrder={handleDeleteOrder}
                 isPending={updateOrderStatus.isPending}
@@ -157,7 +162,7 @@ export function OrderManagement() {
               <OrderMobileCards
                 orders={filteredOrders}
                 selectedOrder={selectedOrder}
-                setSelectedOrder={setSelectedOrder}
+                setSelectedOrder={handleSetSelectedOrder}
                 onStatusUpdate={handleStatusUpdate}
                 onDeleteOrder={handleDeleteOrder}
                 isPending={updateOrderStatus.isPending}

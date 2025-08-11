@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { OrderProduct } from '@/types/orderTypes';
 import { Product } from '@/types';
 import { UNIT_OF_MEASURE_OPTIONS } from '@/types/unitTypes';
+import { memo } from 'react';
 
 interface OrderProductRowProps {
   product: OrderProduct;
@@ -14,7 +15,7 @@ interface OrderProductRowProps {
   canRemove: boolean;
 }
 
-export function OrderProductRow({
+export const OrderProductRow = memo(function OrderProductRow({
   product,
   products,
   onUpdate,
@@ -86,4 +87,4 @@ export function OrderProductRow({
       </div>
     </div>
   );
-}
+});

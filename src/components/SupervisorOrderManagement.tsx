@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { Package, Plus } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,7 +22,8 @@ export function SupervisorOrderManagement() {
   const [selectedOrder, setSelectedOrder] = useState<OrderRequestWithItems | null>(null);
   const [subdistrictFilter, setSubdistrictFilter] = useState<string>('all');
   
-  const handleConfirmReceipt = async (orderId: string) => {
+  // Memoize handlers to prevent unnecessary re-renders
+  const handleConfirmReceipt = useCallback(async (orderId: string) => {
     try {
       await updateOrderStatus.mutateAsync({ orderId, status: 'received' });
       showNotificationToast({
@@ -39,17 +40,27 @@ export function SupervisorOrderManagement() {
         message: 'Não foi possível confirmar o recebimento. Tente novamente.',
       });
     }
-  };
+  }, [updateOrderStatus]);
 
-  // Filter orders created by the current supervisor only
-  let userOrders = orderRequests.filter(order => 
-    order.createdBy === userProfile?.id
-  );
+  const handleSetSelectedOrder = useCallback((order: OrderRequestWithItems | null) => {
+    setSelectedOrder(order);
+  }, []);
 
-  // Apply subdistrict filter
-  if (subdistrictFilter !== 'all') {
-    userOrders = userOrders.filter(order => order.subdistrict === subdistrictFilter);
-  }
+  const noDeleteHandler = useCallback(() => Promise.resolve(), []);
+
+  // Memoize filtered orders
+  const userOrders = useMemo(() => {
+    let filtered = orderRequests.filter(order => 
+      order.createdBy === userProfile?.id
+    );
+
+    // Apply subdistrict filter
+    if (subdistrictFilter !== 'all') {
+      filtered = filtered.filter(order => order.subdistrict === subdistrictFilter);
+    }
+
+    return filtered;
+  }, [orderRequests, userProfile?.id, subdistrictFilter]);
 
   const {
     activeTab,
@@ -154,9 +165,9 @@ export function SupervisorOrderManagement() {
               <OrderTable
                 orders={filteredOrders}
                 selectedOrder={selectedOrder}
-                setSelectedOrder={setSelectedOrder}
+                setSelectedOrder={handleSetSelectedOrder}
                 onStatusUpdate={handleConfirmReceipt}
-                onDeleteOrder={() => Promise.resolve()} // Supervisors can't delete orders
+                onDeleteOrder={noDeleteHandler}
                 isPending={updateOrderStatus.isPending}
               />
 
@@ -164,9 +175,9 @@ export function SupervisorOrderManagement() {
               <OrderMobileCards
                 orders={filteredOrders}
                 selectedOrder={selectedOrder}
-                setSelectedOrder={setSelectedOrder}
+                setSelectedOrder={handleSetSelectedOrder}
                 onStatusUpdate={handleConfirmReceipt}
-                onDeleteOrder={() => Promise.resolve()} // Supervisors can't delete orders
+                onDeleteOrder={noDeleteHandler}
                 isPending={updateOrderStatus.isPending}
               />
             </>
