@@ -49,7 +49,22 @@ export const OrderProductRow = memo(function OrderProductRow({
           type="number"
           min="1"
           value={product.quantity}
-          onChange={(e) => onUpdate(product.id, 'quantity', parseInt(e.target.value) || 1)}
+          onChange={(e) => {
+            const value = e.target.value;
+            // Permite string vazia para que o usuário possa apagar completamente
+            if (value === '') {
+              onUpdate(product.id, 'quantity', '');
+            } else {
+              const numValue = parseInt(value);
+              onUpdate(product.id, 'quantity', isNaN(numValue) ? '' : numValue);
+            }
+          }}
+          onBlur={(e) => {
+            // Ao perder o foco, se estiver vazio, define como 1
+            if (e.target.value === '' || e.target.value === '0') {
+              onUpdate(product.id, 'quantity', 1);
+            }
+          }}
         />
       </div>
 
