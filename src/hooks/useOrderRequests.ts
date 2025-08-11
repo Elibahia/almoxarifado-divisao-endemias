@@ -198,27 +198,84 @@ export function useOrderRequests() {
       orderId: string;
       status: 'approved' | 'delivered' | 'received' | 'cancelled';
     }) => {
-      const { data: user } = await supabase.auth.getUser();
-      const now = new Date().toISOString();
+      console.log('🔄 Iniciando atualização de status:', { orderId: orderId.substring(0, 8), status });
       
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user) {
+        console.log('❌ Usuário não autenticado');
+        throw new Error('Usuário não autenticado');
+      }
+      
+      console.log('👤 Usuário autenticado:', user.user.email);
+      
+      // Verificar o perfil do usuário
+      const { data: profile, error: profileError } = await supabase
+        .from('user_profiles')
+        .select('role, is_active')
+        .eq('id', user.user.id)
+        .single();
+      
+      if (profileError || !profile) {
+        console.log('❌ Erro ao buscar perfil do usuário:', profileError);
+        throw new Error('Não foi possível verificar as permissões do usuário');
+      }
+      
+      console.log('👤 Perfil do usuário:', profile);
+      
+      if (!profile.is_active) {
+        console.log('❌ Usuário inativo');
+        throw new Error('Usuário inativo');
+      }
+      
+      if (!['admin', 'gestor_almoxarifado'].includes(profile.role)) {
+        console.log('❌ Usuário sem permissão:', profile.role);
+        throw new Error('Você não tem permissão para atualizar pedidos');
+      }
+      
+      const now = new Date().toISOString();
       const updateData: Record<string, string | null | OrderStatus> = { status };
       
       if (status === 'approved') {
-        updateData.approved_by = user.user?.id;
+        updateData.approved_by = user.user.id;
         updateData.approved_at = now;
       } else if (status === 'delivered') {
         updateData.delivered_at = now;
       } else if (status === 'received') {
-        updateData.received_by = user.user?.id;
+        updateData.received_by = user.user.id;
         updateData.received_at = now;
       }
 
-      const { error } = await supabase
+      console.log('📝 Dados para atualização:', updateData);
+
+      // Atualizar o pedido
+      const { data: updateResult, error } = await supabase
         .from('order_requests')
         .update(updateData)
-        .eq('id', orderId);
+        .eq('id', orderId)
+        .select();
 
-      if (error) throw error;
+      console.log('📊 Resultado da atualização:', { updateResult, error });
+
+      if (error) {
+        console.log('❌ Erro na atualização:', error);
+        
+        // Mensagens de erro mais específicas
+        if (error.code === '42501' || error.code === 'PGRST301') {
+          throw new Error('Erro de permissão: Verifique se as políticas RLS foram aplicadas corretamente no banco de dados.');
+        } else if (error.code === '23503') {
+          throw new Error('Erro de referência: O pedido pode não existir.');
+        } else {
+          throw new Error(`Erro ao atualizar pedido: ${error.message}`);
+        }
+      }
+
+      if (!updateResult || updateResult.length === 0) {
+        console.log('⚠️ Nenhum registro foi atualizado');
+        throw new Error('Nenhum pedido foi encontrado para atualização');
+      }
+
+      console.log('✅ Status atualizado com sucesso:', updateResult[0]);
+      return updateResult[0];
     }, []),
     onSuccess: useCallback(() => {
       queryClient.invalidateQueries({ queryKey: ['orderRequests'] });
