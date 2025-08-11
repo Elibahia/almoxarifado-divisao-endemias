@@ -16,9 +16,17 @@ export function exportCsv(
   link.setAttribute('href', url)
   link.setAttribute('download', `${filenameBase}.csv`)
   link.style.visibility = 'hidden'
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
+  // Append and cleanup safely to avoid removeChild errors under rapid unmounts
+  const body = document.body
+  body.appendChild(link)
+  try {
+    link.click()
+  } finally {
+    if (link.parentNode === body) {
+      body.removeChild(link)
+    }
+    URL.revokeObjectURL(url)
+  }
 }
 
 

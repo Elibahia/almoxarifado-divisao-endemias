@@ -2,7 +2,6 @@ import { User, Calendar, Eye, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { OrderRequestWithItems } from '@/hooks/useOrderRequests';
 import { getStatusConfig } from '@/constants/orderStatus';
@@ -75,25 +74,22 @@ export function OrderTable({
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setSelectedOrder(order)}
-                        >
-                          <Eye className="h-3 w-3 mr-1" />
-                          Ver
-                        </Button>
-                      </DialogTrigger>
-                      <OrderDetailsDialog
-                        order={selectedOrder}
-                        isOpen={!!selectedOrder}
-                        onClose={() => setSelectedOrder(null)}
-                        onStatusUpdate={onStatusUpdate}
-                        isPending={isPending}
-                      />
-                    </Dialog>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setSelectedOrder(order)}
+                    >
+                      <Eye className="h-3 w-3 mr-1" />
+                      Ver
+                    </Button>
+                    {/* Keep a single dialog instance controlled by selectedOrder */}
+                    <OrderDetailsDialog
+                      order={selectedOrder}
+                      isOpen={!!selectedOrder}
+                      onClose={() => setSelectedOrder(null)}
+                      onStatusUpdate={onStatusUpdate}
+                      isPending={isPending}
+                    />
 
                     {canDelete && (
                       <AlertDialog>

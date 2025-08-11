@@ -2,7 +2,6 @@ import { User, Calendar, Eye, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Dialog, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { OrderRequestWithItems } from '@/hooks/useOrderRequests';
 import { getStatusConfig } from '@/constants/orderStatus';
@@ -69,26 +68,23 @@ export function OrderMobileCards({
             </div>
             
             <div className="flex flex-wrap gap-2 pt-3 border-t">
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setSelectedOrder(order)}
-                    className="flex-1"
-                  >
-                    <Eye className="h-3 w-3 mr-1" />
-                    Ver Detalhes
-                  </Button>
-                </DialogTrigger>
-                <OrderDetailsDialog
-                  order={selectedOrder}
-                  isOpen={!!selectedOrder}
-                  onClose={() => setSelectedOrder(null)}
-                  onStatusUpdate={onStatusUpdate}
-                  isPending={isPending}
-                />
-              </Dialog>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSelectedOrder(order)}
+                className="flex-1"
+              >
+                <Eye className="h-3 w-3 mr-1" />
+                Ver Detalhes
+              </Button>
+              {/* Single controlled dialog instance */}
+              <OrderDetailsDialog
+                order={selectedOrder}
+                isOpen={!!selectedOrder}
+                onClose={() => setSelectedOrder(null)}
+                onStatusUpdate={onStatusUpdate}
+                isPending={isPending}
+              />
 
               {canDelete && (
                 <AlertDialog>
